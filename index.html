@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Generative AI from First Principles</title>
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-<style>:root{--bg:#ffffff;--fg:#111111;--muted:#444444;--link:#0000ee;--visited:#551a8b;--rule:#bbbbbb;--box:#f4f4f4;--code:#f2f2f2;--hl:#c8ffff;--imgbg:transparent;--wip-bg:#fff3d1;--wip-fg:#6b4a00;--wip-border:#e3b341;--wip-link:#8a5a00;color-scheme:light}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;--wip-bg:#3a2e10;--wip-fg:#f2d58a;--wip-border:#b8891f;--wip-link:#e8c170;color-scheme:dark}}:root[data-theme="dark"]{--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;--wip-bg:#3a2e10;--wip-fg:#f2d58a;--wip-border:#b8891f;--wip-link:#e8c170;color-scheme:dark}img{background:var(--imgbg)}.theme-toggle{font:inherit;font-size:.85em;color:var(--link);background:none;border:1px solid var(--rule);border-radius:3px;padding:.1em .6em;cursor:pointer;white-space:nowrap}.wip-badge{font-size:.72em;font-weight:normal;vertical-align:middle;padding:.05em .45em;margin-left:.45em;border-radius:3px;background:var(--wip-bg);color:var(--wip-fg);border:1px solid var(--wip-border);white-space:nowrap}.wip-banner{background:var(--wip-bg);color:var(--wip-fg);border-left:4px solid var(--wip-border);padding:.45em .9em;margin:.6em 0 1em}li.wip{border-left:3px solid var(--wip-border);padding-left:.6em}li.wip a,li.wip a:visited{color:var(--wip-link)}li.wip li.done a{color:var(--link)}</style>
+<style>:root{--bg:#ffffff;--fg:#111111;--muted:#444444;--link:#0000ee;--visited:#551a8b;--rule:#bbbbbb;--box:#f4f4f4;--code:#f2f2f2;--hl:#c8ffff;--imgbg:transparent;--wip-bg:#fff3d1;--wip-fg:#6b4a00;--wip-border:#e3b341;--wip-link:#8a5a00;--code-bg:#f6f8fa;--code-border:#d0d7de;--code-head:#eef1f4;--tk-kw:#cf222e;--tk-st:#0a3069;--tk-co:#6e7781;--tk-fu:#8250df;--tk-num:#0550ae;--tk-bu:#953800;--tk-at:#116329;--tk-err:#82071e;color-scheme:light}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;--wip-bg:#3a2e10;--wip-fg:#f2d58a;--wip-border:#b8891f;--wip-link:#e8c170;--code-bg:#1b1f24;--code-border:#30363d;--code-head:#22272e;--tk-kw:#ff7b72;--tk-st:#a5d6ff;--tk-co:#8b949e;--tk-fu:#d2a8ff;--tk-num:#79c0ff;--tk-bu:#ffa657;--tk-at:#7ee787;--tk-err:#ffa198;color-scheme:dark}}:root[data-theme="dark"]{--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;--wip-bg:#3a2e10;--wip-fg:#f2d58a;--wip-border:#b8891f;--wip-link:#e8c170;--code-bg:#1b1f24;--code-border:#30363d;--code-head:#22272e;--tk-kw:#ff7b72;--tk-st:#a5d6ff;--tk-co:#8b949e;--tk-fu:#d2a8ff;--tk-num:#79c0ff;--tk-bu:#ffa657;--tk-at:#7ee787;--tk-err:#ffa198;color-scheme:dark}img{background:var(--imgbg)}.theme-toggle{font:inherit;font-size:.85em;color:var(--link);background:none;border:1px solid var(--rule);border-radius:3px;padding:.1em .6em;cursor:pointer;white-space:nowrap}.wip-badge{font-size:.72em;font-weight:normal;vertical-align:middle;padding:.05em .45em;margin-left:.45em;border-radius:3px;background:var(--wip-bg);color:var(--wip-fg);border:1px solid var(--wip-border);white-space:nowrap}.wip-banner{background:var(--wip-bg);color:var(--wip-fg);border-left:4px solid var(--wip-border);padding:.45em .9em;margin:.6em 0 1em}li.wip{border-left:3px solid var(--wip-border);padding-left:.6em}li.wip a,li.wip a:visited{color:var(--wip-link)}li.wip li.done a{color:var(--link)}</style>
 </head><body>
 <style>
 /* Colour variables and the theme toggle come from tools/build_notes_site.py (THEME_CSS), added by tools/build_site.py. */
@@ -27,14 +27,14 @@ ul.weeks > li > p{margin:.4em 0 0 1.5em}
 <div class="wip-banner">Work in progress: this page and the course materials are still being written and will change as the course runs.</div>
 <dl>
   <dd><b>Instructor</b>: <a href="https://mathrulestheworld.github.io/">Madhusudhan Reddy Pittu</a></dd>
-  <dd><b>Format</b>: 8 weekly lectures of ~2 hours each, Wednesdays 3–5 pm.</dd>
+  <dd><b>Format</b>: Eight weekly lectures of approximately two hours, with an optional ninth session. Wednesdays, 3–5 pm.</dd>
   <dd><b>Course plan</b>: the weekly topics are listed below. Notes, slides, and references are posted here as each week runs.</dd>
   <dd><b>Supplementary material</b>: <a href="notes/index.html">Background Notes on Machine Learning and AI</a></dd>
 </dl>
 
 <hr>
 <h3>About</h3>
-<p>An introduction to generative AI through its central example, the large language model, built from first principles and presented from a theoretical computer science viewpoint. The course follows the language model through its lifecycle: how its conditional probabilities have been computed (with counts and grammars, then with attention), how it is trained at scale, how a base model becomes an assistant through finetuning and reinforcement learning, and how the result is decoded, served, and evaluated.</p>
+<p>This course introduces generative AI through the study of large language models, starting from first principles. The central object is a language model: a probability distribution over sequences of tokens. We follow its development from grammars and statistical models to Transformers, large-scale pretraining, post-training, and inference. The viewpoint is that of theoretical computer science: what can these models learn and compute, from what data, with what resources, and with what guarantees? Throughout, we distinguish mathematical results from empirical findings and open questions.</p>
 
 <hr>
 <h3>Announcements</h3>
@@ -48,40 +48,40 @@ ul.weeks > li > p{margin:.4em 0 0 1.5em}
 
 <ul class="weeks">
 
-<li id="current"><b>Week #1: (Artificial) Intelligence, Learning, Language, and Meaning</b>
-  <p>An overview of the course. What intelligence, learning, and language are, and what it would mean for a machine to have them: the imitation game, the problem of induction and PAC learning, learning languages in the limit, and form versus meaning. Then the terminology and basics of AI, machine learning, and deep learning that the rest of the course uses. (<a href="materials/week-01/lecture-01-notes.pdf">notes</a>)</p>
+<li id="current"><b>Week 1: (Artificial) Intelligence, Learning, Language, and Meaning</b>
+  <p>What does it mean for a machine to be intelligent, to learn, or to use language? We explore these questions through Turing’s imitation game, induction and PAC learning, language learning in the limit, and the relationship between form and meaning. We then establish the AI, machine learning, and deep learning concepts used throughout the course. (<a href="materials/week-01/lecture-01-notes.pdf">notes</a>)</p>
 </li>
 
-<li><b>Week #2: The Traditional NLP Approach to Language Modeling</b>
-  <p>Language as a formal object (grammars and automata) and as a stochastic source (Markov and Shannon). n-gram models, smoothing, and evaluation by cross-entropy and perplexity; hidden Markov models; distributional semantics and word embeddings; the first neural language models.</p>
+<li><b>Week 2: Language Modeling: From Grammars and Counts to Neural Networks</b>
+  <p>We study language as a formal object and a stochastic source, introducing grammars, automata, and probabilistic models. Topics include n-gram models, smoothing, cross-entropy and perplexity, hidden Markov models, and distributional semantics. Word embeddings and early neural language models introduce the transition from counting occurrences to learning representations.</p>
 </li>
 
-<li><b>Week #3: The Modern Approach: Attention and Transformers</b>
-  <p>From recurrent networks to attention. The Transformer computation in full, its cost, and the KV cache. What Transformers can and cannot compute.</p>
+<li><b>Week 3: Attention and Transformers: Computation and Limits</b>
+  <p>We trace the path from recurrent networks to attention and the Transformer architecture. A step-by-step account of the computation explains its time and memory costs and the role of the key–value cache. We then examine Transformers’ computational capabilities and limits, paying attention to the assumptions behind formal results.</p>
 </li>
 
-<li><b>Week #4: Scale and Pretraining</b>
-  <p>Tokenization, pretraining data, and training objectives. Optimization at scale, scaling laws and compute-optimal training, and the systems that make it possible. What a base model is.</p>
+<li><b>Week 4: Pretraining: Data, Optimization, and Scale</b>
+  <p>How do tokens, data, and a training objective produce a base language model? We examine tokenization, data preparation, and optimization, then study empirical scaling laws and the allocation of a fixed compute budget. We also introduce the systems techniques that make large-scale training possible.</p>
 </li>
 
-<li><b>Week #5: From Base Model to Assistant: the ChatGPT Revolution</b>
-  <p>What a base model does: completion, prompting, and in-context learning. The gap between predicting text and following instructions, and how instruction tuning and human feedback closed it.</p>
+<li><b>Week 5: From Base Models to Assistants</b>
+  <p>We examine what pretrained models can do through completion, prompting, and in-context learning, including ways to elicit reasoning. We then introduce the gap between predicting text and following instructions, and the ideas behind instruction tuning and learning from feedback. This provides the motivation for the training methods developed in Weeks 6 and 7.</p>
 </li>
 
-<li><b>Week #6: Reinforcement Learning and Sequence Generation</b>
-  <p>The basics of reinforcement learning: bandits, Markov decision processes, value-based methods, and policy gradients. Text generation as a sequential decision problem.</p>
+<li><b>Week 6: Reinforcement Learning for Sequence Generation</b>
+  <p>We develop the reinforcement learning foundations needed for language model post-training: bandits, Markov decision processes, value functions, and policy gradients. We then formulate text generation as a sequential decision problem, connecting token choices and response-level rewards to regularized policy optimization.</p>
 </li>
 
-<li><b>Week #7: Post-training in the LLM Stack: SFT and RLHF</b>
-  <p>The post-training pipeline in practice: supervised finetuning, reward models, RLHF, direct preference optimization, and reinforcement learning with verifiable rewards for reasoning models. Their failure modes.</p>
+<li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
+  <p>We study how language models are trained using demonstrations, preference judgments, and verifiable rewards. Topics include supervised fine-tuning, reward modeling, reinforcement learning from human feedback, direct preference optimization, and training reasoning models. We examine the objectives behind these methods and failure modes such as reward hacking and sycophancy.</p>
 </li>
 
-<li><b>Week #8: Inference</b>
-  <p>Decoding as the choice of a new distribution, test-time computation, efficient serving, and evaluation.</p>
+<li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
+  <p>We examine how decoding rules shape the distribution of generated text and how additional computation at inference time can improve answers. We then study efficient serving and the tradeoffs among speed, memory, and output quality. Evaluation connects these choices to measured performance, with attention to benchmark contamination and statistical uncertainty.</p>
 </li>
 
-<li><b>Week #9 (optional): Alignment and Agents</b>
-  <p>What it means for a model to be aligned, and how alignment is specified and checked. Language models as agents: tool use, retrieval, planning, and agent loops.</p>
+<li><b>Week 9 (optional): Alignment and Language Model Agents</b>
+  <p>We examine how desired model behavior is specified and evaluated, and the limits of these approaches. We then study language models as agents, combining retrieval, tool use, and planning in repeated cycles of observation and action.</p>
 </li>
 
 </ul>
