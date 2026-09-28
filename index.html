@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Generative AI from First Principles</title>
+</head><body>
+<style>
+:root{--bg:#ffffff;--fg:#111111;--muted:#444444;--link:#0645ad;--visited:#5a2a8a;--rule:#bbbbbb;--hl:#c8ffff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--hl:#12393b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--hl:#12393b;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:sans-serif;font-size:16px;line-height:1.4;max-width:62em;margin:0 auto;padding-inline:16px;padding-block:8px 32px}
+a{color:var(--link)} a:visited{color:var(--visited)}
+h1{font-size:1.7em;margin:.6em 0 .5em}
+h3{margin:.9em 0 .5em}
+hr{border:0;border-top:1px solid var(--rule)}
+dl{margin:0} dd{margin:0 0 .25em 1.5em}
+ul.weeks{list-style:none;padding-left:0}
+ul.weeks > li{margin-bottom:1em;padding:.3em .4em}
+ul.weeks > li > p{margin:.4em 0 0 1.5em}
+#current{background:var(--hl)}
+.note{color:var(--muted)}
+</style>
+
+<h1>Generative AI from First Principles</h1>
+<dl>
+  <dd><b>Instructor</b>: Madhusudhan Pittu</dd>
+  <dd><b>Format</b>: eight weekly lectures of three hours each.</dd>
+  <dd><b>Course plan</b>: the weekly topics are listed below. Notes, slides, and references are posted here as each week runs.</dd>
+  <dd><b>Supplementary material</b>: the <a href="notes/index.html">Background Notes on Machine Learning and AI</a>, which develop in full the material the lectures assume (see <a href="#supplementary">below</a>).</dd>
+</dl>
+
+<hr>
+<h3>About</h3>
+<p>An introduction to generative AI through its central example, the large language model, built from first principles and taught from the viewpoint of a theoretical computer scientist. The course follows one object, a probability distribution over strings, through its lifecycle: how its conditional probabilities have been computed (with counts and grammars, then with attention), how it is trained at scale, how a base model becomes an assistant through finetuning and reinforcement learning, and how the result is decoded, served, and evaluated. Along the way we ask what is computed, with what resources, from what information, and with what guarantees.</p>
+
+<hr>
+<h3>Announcements</h3>
+<ul>
+  <li>Lecture 1 notes are posted.</li>
+  <li>The Background Notes on Machine Learning and AI are online as supplementary reading.</li>
+</ul>
+
+<hr>
+<h3>Lectures</h3>
+
+<ul class="weeks">
+
+<li id="current"><b>Week #1: (Artificial) Intelligence, Learning, Language, and Meaning</b>
+  <p>An overview of the course. What intelligence, learning, and language are, and what it would mean for a machine to have them: the imitation game, the problem of induction and PAC learning, learning languages in the limit, and form versus meaning. Then the terminology and basics of AI, machine learning, and deep learning that the rest of the course uses. (<a href="materials/week-01/lecture-01-notes.pdf">notes</a>)</p>
+</li>
+
+<li><b>Week #2: The Traditional NLP Approach to Language Modeling</b>
+  <p>Language as a formal object (grammars and automata) and as a stochastic source (Markov and Shannon). n-gram models, smoothing, and evaluation by cross-entropy and perplexity; hidden Markov models; distributional semantics and word embeddings; the first neural language models.</p>
+</li>
+
+<li><b>Week #3: The Modern Approach: Attention and Transformers</b>
+  <p>From recurrent networks to attention. The Transformer computation in full, its cost, and the KV cache. What Transformers can and cannot compute.</p>
+</li>
+
+<li><b>Week #4: Scale and Pretraining</b>
+  <p>Tokenization, pretraining data, and training objectives. Optimization at scale, scaling laws and compute-optimal training, and the systems that make it possible. What a base model is.</p>
+</li>
+
+<li><b>Week #5: From Base Model to Assistant: the ChatGPT Revolution</b>
+  <p>What a base model does: completion, prompting, and in-context learning. The gap between predicting text and following instructions, and how instruction tuning and human feedback closed it.</p>
+</li>
+
+<li><b>Week #6: Reinforcement Learning and Sequence Generation</b>
+  <p>The basics of reinforcement learning: bandits, Markov decision processes, value-based methods, and policy gradients. Text generation as a sequential decision problem.</p>
+</li>
+
+<li><b>Week #7: Post-training in the LLM Stack: SFT and RLHF</b>
+  <p>The post-training pipeline in practice: supervised finetuning, reward models, RLHF, direct preference optimization, and reinforcement learning with verifiable rewards for reasoning models. Their failure modes.</p>
+</li>
+
+<li><b>Week #8: Inference</b>
+  <p>Decoding as the choice of a new distribution, test-time computation, efficient serving, and evaluation.</p>
+</li>
+
+</ul>
+
+<hr>
+<h3 id="supplementary">Supplementary material</h3>
+<p>The <a href="notes/index.html">Background Notes on Machine Learning and AI</a> cover the material the lectures assume in detail. They are working notes and are revised as the course runs.</p>
+<ul>
+  <li><a href="notes/foundations/index.html">Foundations</a></li>
+  <li><a href="notes/ml/index.html">Machine Learning</a></li>
+  <li><a href="notes/dl/index.html">Deep Learning</a></li>
+  <li><a href="notes/ai/index.html">Artificial Intelligence</a></li>
+  <li><a href="notes/nlp-llms/index.html">NLP and Large Language Models</a></li>
+  <li><a href="notes/generative-ai/index.html">Generative AI</a></li>
+  <li><a href="notes/rl/index.html">Reinforcement Learning</a></li>
+</ul>
+
+<hr>
+<p class="note">Updated 28 September 2026.</p>
+</body></html>

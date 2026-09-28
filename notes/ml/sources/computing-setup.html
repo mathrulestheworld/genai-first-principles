@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Computing setup · Background Notes</title>
+<style>
+:root{--bg:#fff;--fg:#111;--muted:#555;--link:#0645ad;--visited:#5a2a8a;--rule:#ccc;--box:#f5f7f9;--code:#f2f2f2}
+@media (prefers-color-scheme: dark){:root{--bg:#121212;--fg:#e6e6e6;--muted:#aaa;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444;--box:#1c2226;--code:#1e1e1e;color-scheme:dark}}
+body{background:var(--bg);color:var(--fg);font-family:sans-serif;font-size:16px;line-height:1.55;max-width:48em;margin:0 auto;padding:8px 16px 40px}
+a{color:var(--link)} a:visited{color:var(--visited)}
+nav.crumbs{font-size:.9em;color:var(--muted);margin:.6em 0} nav.prevnext{font-size:.9em;margin:1.2em 0;display:flex;justify-content:space-between;gap:1em;flex-wrap:wrap}
+h1{font-size:1.7em;margin:.4em 0 .6em} h2{margin-top:1.6em} h3{margin-top:1.3em}
+img{max-width:100%;height:auto;display:block;margin:.8em auto}
+table{border-collapse:collapse;margin:1em 0;font-size:.95em;display:block;overflow-x:auto} th,td{border:1px solid var(--rule);padding:.3em .5em;vertical-align:top}
+pre{background:var(--code);padding:.7em;overflow-x:auto;font-size:.88em;line-height:1.4} code{background:var(--code);padding:0 .2em;font-size:.92em} pre code{padding:0;background:none}
+.callout{border-left:3px solid var(--rule);background:var(--box);padding:.4em .9em;margin:1em 0}
+.callout summary,.callout .callout-title{font-weight:bold;cursor:pointer}
+.callout-body{overflow-x:auto}
+blockquote{border-left:3px solid var(--rule);margin-left:0;padding-left:1em;color:var(--muted)}
+mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden}
+.unlinked{border-bottom:1px dotted var(--muted)} .missing{color:#b00} .omitted{color:var(--muted);font-style:italic}
+footer{margin-top:2.5em;border-top:1px solid var(--rule);padding-top:.6em;font-size:.85em;color:var(--muted)}
+ul.modules>li{margin-bottom:.8em}
+</style>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]],processEscapes:true},svg:{fontCache:"global"}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+
+</head><body>
+<nav class="crumbs"><a href="../../../index.html">Generative AI from First Principles</a> › <a href="../../index.html">Background Notes</a> › <a href="../index.html">Machine Learning</a></nav>
+<h1>Computing setup</h1>
+
+<main>
+<h1 id="computing-setup">Computing setup</h1><p>The ML code blocks and figure scripts use Python, NumPy, SciPy, and scikit-learn; the environment also pins Matplotlib, and PyTorch is not needed. The figures themselves are drawn with Node.js, as described <a href="#regenerating-the-figures">below</a>. The environment below is a <strong>CPU reproducibility snapshot</strong>, tested on Linux x86_64 with CPython 3.12.3. Every code block in the seventeen chapters was run in it with one and with two BLAS threads, and its printed output matched the comment lines at the end of the block. The version pins are not a claim that these are the newest releases.</p><table><thead><tr class="header"><th>Component</th><th>Tested version</th></tr></thead><tbody><tr class="odd"><td>Python</td><td>3.12.3</td></tr><tr class="even"><td>NumPy</td><td>1.26.4</td></tr><tr class="odd"><td>SciPy</td><td>1.11.4</td></tr><tr class="even"><td>Matplotlib</td><td>3.8.4</td></tr><tr class="odd"><td>scikit-learn</td><td>1.4.2</td></tr><tr class="even"><td>joblib / threadpoolctl</td><td>1.6.0 / 3.7.0</td></tr></tbody></table><p>NumPy, SciPy, and Matplotlib have the same versions as in the <a href="../../foundations/sources/computing-setup.html">Foundations environment</a>, so either of the following works.</p><h2 id="add-scikit-learn-to-the-foundations-environment">Add scikit-learn to the Foundations environment</h2><p>If the Foundations environment already exists, activate it from the <code>0. Foundations</code> folder and add scikit-learn at the tested versions:</p><div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1"></a><span class="bu">source</span> .venv/bin/activate</span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2"></a><span class="ex">python</span> -m pip install scikit-learn==1.4.2 joblib==1.6.0 threadpoolctl==3.7.0 cloudpickle==3.1.2</span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3"></a><span class="ex">python</span> -m pip check</span></code></pre></div><p>These packages do not change the NumPy or SciPy installation that the Foundations PyTorch build depends on.</p><h2 id="or-create-a-separate-environment">Or create a separate environment</h2><p>Open a terminal in the <code>1. ML</code> folder and use Python 3.12. The environment stays inside this folder.</p><div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1"></a><span class="ex">python3.12</span> -m venv .venv</span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2"></a><span class="bu">source</span> .venv/bin/activate</span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3"></a><span class="ex">python</span> -m pip install -r Sources/Environment/requirements.txt</span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4"></a><span class="ex">python</span> -m pip check</span></code></pre></div><p><span class="unlinked">requirements.txt</span> records the resolved package versions, including dependencies. Do not upgrade NumPy independently: the pinned SciPy and scikit-learn wheels are built against NumPy 1.x.</p><h2 id="running-the-examples">Running the examples</h2><p>Each code block in a chapter is self-contained. Copy it into a Python session or a notebook cell and run it; the final comment lines show the output to expect. All blocks use synthetic data or datasets bundled with scikit-learn, so they run offline.</p><p>Random seeds are fixed, so the results are repeatable within this environment. Other library versions can change printed values in the last digits, and occasionally more, for example when two candidate splits of a tree tie or when a solver’s default tolerance changes. A mismatch in the last printed digit is not an error in the notes.</p><h2 id="regenerating-the-figures">Regenerating the figures</h2><p>All figures are drawn with D3 and KaTeX, using the drawing library and packages of the Foundations figures. They need Node.js 22 or later. Install the Foundations figure packages once, as described in <a href="../../foundations/sources/computing-setup.html#regenerate-the-added-figures">the Foundations computing setup</a>.</p><p>Each chapter has a script in <code>Sources/Figure code</code>, from <code>ch01_nearest_neighbors.py</code> to <code>ch17_smoothing.py</code>. With the Python environment active, a script writes the data of the chapter’s figures that show fitted models (scikit-learn estimators, EM runs, Gaussian-process fits, and the like) to <code>js/data/&lt;name&gt;.js</code>, and prints every number that the chapter and its captions quote from its figures:</p><div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1"></a><span class="bu">cd</span> <span class="st">"Sources/Figure code"</span>         # from the 1. ML folder</span>
+<span id="cb3-2"><a aria-hidden="true" href="#cb3-2"></a><span class="ex">python</span> ch08_svm_kernels.py        # chapter 8: writes js/data/*.js and prints the quoted numbers</span></code></pre></div><p>Chapter 1’s script writes no data files, because all of its figures compute their data in JavaScript. Most scripts finish in under half a minute; those of chapters 5, 6, 10, 11, and 16 take up to about a minute. Rerunning a script in the tested environment reproduces its data files, apart from differences in the last digits of a few values that come from floating-point roundoff. The data files are kept in the vault, so the figures can be rebuilt without running the scripts first. To build and render them:</p><div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a aria-hidden="true" href="#cb4-1"></a><span class="bu">cd</span> <span class="st">"Sources/Figure code/js"</span>      # from the 1. ML folder</span>
+<span id="cb4-2"><a aria-hidden="true" href="#cb4-2"></a><span class="fu">sh</span> build.sh</span>
+<span id="cb4-3"><a aria-hidden="true" href="#cb4-3"></a><span class="ex">node</span> render.js                    # all figures<span class="kw">;</span> <span class="ex">or</span> name some: node render.js svm-rbf-grid svm-cv-heatmap</span></code></pre></div><p><code>build.sh</code> wraps each <code>src/&lt;name&gt;.js</code>, preceded by <code>data/&lt;name&gt;.js</code> when that file exists, into <code>build/&lt;name&gt;.html</code>. <code>render.js</code> renders each page at twice its CSS size into <code>Sources/Images</code>, reporting any overlapping or clipped labels and any label crossed by a drawn line. <a href="figure-sources.html">Figure sources</a> records the data and construction of each figure. The module <code>mlfig.py</code> belonged to the earlier Matplotlib versions of the figures and is no longer used.</p>
+
+</main>
+
+<footer>Background Notes on Machine Learning and AI, supplementary material for Generative AI from First Principles. Working notes, built 28 September 2026.</footer>
+<script>
+function openTarget(){var id=decodeURIComponent(location.hash.slice(1));if(!id)return;var el=document.getElementById(id);for(var d=el;d;d=d.parentElement){if(d.tagName==="DETAILS")d.open=true;}if(el)el.scrollIntoView();}
+window.addEventListener("hashchange",openTarget);window.addEventListener("load",openTarget);
+</script>
+</body></html>
