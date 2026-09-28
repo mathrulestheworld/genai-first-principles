@@ -2,12 +2,13 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>2. N-gram Language Models and Perplexity · Background Notes</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
-:root{--bg:#fff;--fg:#111;--muted:#555;--link:#0645ad;--visited:#5a2a8a;--rule:#ccc;--box:#f5f7f9;--code:#f2f2f2}
-@media (prefers-color-scheme: dark){:root{--bg:#121212;--fg:#e6e6e6;--muted:#aaa;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444;--box:#1c2226;--code:#1e1e1e;color-scheme:dark}}
+:root{--bg:#ffffff;--fg:#111111;--muted:#444444;--link:#0000ee;--visited:#551a8b;--rule:#bbbbbb;--box:#f4f4f4;--code:#f2f2f2;--hl:#c8ffff;--imgbg:transparent;color-scheme:light}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;color-scheme:dark}}:root[data-theme="dark"]{--bg:#121212;--fg:#e6e6e6;--muted:#b0b0b0;--link:#8ab4f8;--visited:#c5a3f0;--rule:#444444;--box:#1d2124;--code:#1e1e1e;--hl:#12393b;--imgbg:#ffffff;color-scheme:dark}img{background:var(--imgbg)}.theme-toggle{font:inherit;font-size:.85em;color:var(--link);background:none;border:1px solid var(--rule);border-radius:3px;padding:.1em .6em;cursor:pointer;white-space:nowrap}
 body{background:var(--bg);color:var(--fg);font-family:sans-serif;font-size:16px;line-height:1.55;max-width:48em;margin:0 auto;padding:8px 16px 40px}
 a{color:var(--link)} a:visited{color:var(--visited)}
-nav.crumbs{font-size:.9em;color:var(--muted);margin:.6em 0} nav.prevnext{font-size:.9em;margin:1.2em 0;display:flex;justify-content:space-between;gap:1em;flex-wrap:wrap}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:1em;margin:.6em 0}
+nav.crumbs{font-size:.9em;color:var(--muted)} nav.prevnext{font-size:.9em;margin:1.2em 0;display:flex;justify-content:space-between;gap:1em;flex-wrap:wrap}
 h1{font-size:1.7em;margin:.4em 0 .6em} h2{margin-top:1.6em} h3{margin-top:1.3em}
 img{max-width:100%;height:auto;display:block;margin:.8em auto}
 table{border-collapse:collapse;margin:1em 0;font-size:.95em;display:block;overflow-x:auto} th,td{border:1px solid var(--rule);padding:.3em .5em;vertical-align:top}
@@ -25,7 +26,7 @@ ul.modules>li{margin-bottom:.8em}
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
 
 </head><body>
-<nav class="crumbs"><a href="../../index.html">Generative AI from First Principles</a> › <a href="../index.html">Background Notes</a> › <a href="index.html">NLP and Large Language Models</a></nav>
+<div class="topbar"><nav class="crumbs"><a href="../../index.html">Generative AI from First Principles</a> › <a href="../index.html">Background Notes</a> › <a href="index.html">NLP and Large Language Models</a></nav><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()">Dark mode</button></div>
 <h1>2. N-gram Language Models and Perplexity</h1>
 <nav class="prevnext"><a href="01-text-tokens-and-tokenization.html">← 1. Text, Tokens, and Tokenization</a><a href="03-word-embeddings.html">3. Word Embeddings →</a></nav>
 <main>
@@ -165,6 +166,7 @@ ul.modules>li{margin-bottom:.8em}
 </main>
 <nav class="prevnext"><a href="01-text-tokens-and-tokenization.html">← 1. Text, Tokens, and Tokenization</a><a href="03-word-embeddings.html">3. Word Embeddings →</a></nav>
 <footer>Background Notes on Machine Learning and AI, supplementary material for Generative AI from First Principles. Working notes, built 28 September 2026.</footer>
+<script>function currentTheme(){var t=document.documentElement.getAttribute("data-theme");return t?t:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}function themeLabel(){var b=document.getElementById("theme-toggle");if(b)b.textContent=currentTheme()==="dark"?"Light mode":"Dark mode";}function toggleTheme(){var t=currentTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("theme",t);}catch(e){}themeLabel();}themeLabel();</script>
 <script>
 function openTarget(){var id=decodeURIComponent(location.hash.slice(1));if(!id)return;var el=document.getElementById(id);for(var d=el;d;d=d.parentElement){if(d.tagName==="DETAILS")d.open=true;}if(el)el.scrollIntoView();}
 window.addEventListener("hashchange",openTarget);window.addEventListener("load",openTarget);
