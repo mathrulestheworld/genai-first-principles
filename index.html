@@ -18,6 +18,7 @@ dl{margin:0} dd{margin:0 0 .25em 1.5em}
 ul.weeks{list-style:none;padding-left:0}
 ul.weeks > li{margin-bottom:1em;padding:.3em .4em}
 ul.weeks > li > p{margin:.4em 0 0 1.5em}
+ul.weeks > li > p.hands-on{margin-top:.25em}
 #current{background:var(--hl)}
 .note{color:var(--muted)}
 </style>
@@ -28,13 +29,14 @@ ul.weeks > li > p{margin:.4em 0 0 1.5em}
 <dl>
   <dd><b>Instructor</b>: <a href="https://mathrulestheworld.github.io/">Madhusudhan Reddy Pittu</a></dd>
   <dd><b>Format</b>: Eight weekly lectures of approximately two hours, with an optional ninth session. Wednesdays, 3–5 pm.</dd>
-  <dd><b>Course plan</b>: the weekly topics are listed below. Notes, slides, and references are posted here as each week runs.</dd>
+  <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part, listed below. Notes, slides, code, and references are posted here as each week runs.</dd>
   <dd><b>Supplementary material</b>: <a href="notes/index.html">Background Notes on Machine Learning and AI</a></dd>
 </dl>
 
 <hr>
 <h3>About</h3>
-<p>This course introduces generative AI through the study of large language models, starting from first principles. The central object is a language model: a probability distribution over sequences of tokens. We follow its development from grammars and statistical models to Transformers, large-scale pretraining, post-training, and inference. The viewpoint is that of theoretical computer science: what can these models learn and compute, from what data, with what resources, and with what guarantees? Throughout, we distinguish mathematical results from empirical findings and open questions.</p>
+<p>This course introduces generative AI through the study of large language models, combining mathematical foundations with hands-on implementation. Over the eight weeks we build a small language model from scratch, small enough to train on a laptop: we implement its components, train and fine-tune it, probe its behavior, and evaluate its outputs. The aim is a complete working understanding of the model: how it works, how to build it, and how to investigate what it has learned.</p>
+<p>We trace the path from formal and statistical models of language to Transformers, pretraining, post-training, and inference. The viewpoint of theoretical computer science shapes the questions we ask: what can these models learn and compute, from what data, with what resources, and with what guarantees? The implementation gives a concrete setting in which to explore these questions, connecting theory with experiment and separating what is proved from what is observed.</p>
 
 <hr>
 <h3>Announcements</h3>
@@ -50,38 +52,47 @@ ul.weeks > li > p{margin:.4em 0 0 1.5em}
 
 <li id="current"><b>Week 1: (Artificial) Intelligence, Learning, Language, and Meaning</b>
   <p>What does it mean for a machine to be intelligent, to learn, or to use language? We explore these questions through Turing’s imitation game, induction and PAC learning, language learning in the limit, and the relationship between form and meaning. We then establish the AI, machine learning, and deep learning concepts used throughout the course. (<a href="materials/week-01/lecture-01-notes.pdf">notes</a>)</p>
+  <p class="hands-on"><b>Hands-on:</b> a small automatic-differentiation engine, used to train logistic regression and a two-layer network. It is the first piece of the codebase that grows into our language model.</p>
 </li>
 
 <li><b>Week 2: Language Modeling: From Grammars and Counts to Neural Networks</b>
   <p>We study language as a formal object and a stochastic source, introducing grammars, automata, and probabilistic models. Topics include n-gram models, smoothing, cross-entropy and perplexity, hidden Markov models, and distributional semantics. Word embeddings and early neural language models introduce the transition from counting occurrences to learning representations.</p>
+  <p class="hands-on"><b>Hands-on:</b> tokenizers, n-gram models with smoothing, a sampler, and an evaluation harness that measures perplexity; word vectors from co-occurrence counts.</p>
 </li>
 
 <li><b>Week 3: Attention and Transformers: Computation and Limits</b>
   <p>We trace the path from recurrent networks to attention and the Transformer architecture. A step-by-step account of the computation explains its time and memory costs and the role of the key–value cache. We then examine Transformers’ computational capabilities and limits, paying attention to the assumptions behind formal results.</p>
+  <p class="hands-on"><b>Hands-on:</b> a character-level recurrent baseline, then a decoder-only Transformer written from scratch, tested so that later tokens cannot influence earlier predictions. The two are compared on held-out text.</p>
 </li>
 
 <li><b>Week 4: Pretraining: Data, Optimization, and Scale</b>
   <p>How do tokens, data, and a training objective produce a base language model? We examine tokenization, data preparation, and optimization, then study empirical scaling laws and the allocation of a fixed compute budget. We also introduce the systems techniques that make large-scale training possible.</p>
+  <p class="hands-on"><b>Hands-on:</b> a byte-level BPE tokenizer, a data pipeline, and a full training loop. We pretrain our model at three sizes on the same token budget and fit a scaling law to the results.</p>
 </li>
 
 <li><b>Week 5: From Base Models to Assistants</b>
   <p>We examine what pretrained models can do through completion, prompting, and in-context learning, including ways to elicit reasoning. We then introduce the gap between predicting text and following instructions, and the ideas behind instruction tuning and learning from feedback. This provides the motivation for the training methods developed in Weeks 6 and 7.</p>
+  <p class="hands-on"><b>Hands-on:</b> in-context learning experiments with small Transformers (copying by induction heads, in-context linear regression) and few-shot prompting of the model pretrained in Week 4.</p>
 </li>
 
 <li><b>Week 6: Reinforcement Learning for Sequence Generation</b>
   <p>We develop the reinforcement learning foundations needed for language model post-training: bandits, Markov decision processes, value functions, and policy gradients. We then formulate text generation as a sequential decision problem, connecting token choices and response-level rewards to regularized policy optimization.</p>
+  <p class="hands-on"><b>Hands-on:</b> value iteration, REINFORCE, and PPO on small decision problems, then REINFORCE applied to our language model.</p>
 </li>
 
 <li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
   <p>We study how language models are trained using demonstrations, preference judgments, and verifiable rewards. Topics include supervised fine-tuning, reward modeling, reinforcement learning from human feedback, direct preference optimization, and training reasoning models. We examine the objectives behind these methods and failure modes such as reward hacking and sycophancy.</p>
+  <p class="hands-on"><b>Hands-on:</b> supervised fine-tuning with LoRA written from scratch, a reward model, DPO, and GRPO training our model on multi-digit arithmetic, tracking reward, KL divergence from the starting model, and response length.</p>
 </li>
 
 <li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
   <p>We examine how decoding rules shape the distribution of generated text and how additional computation at inference time can improve answers. We then study efficient serving and the tradeoffs among speed, memory, and output quality. Evaluation connects these choices to measured performance, with attention to benchmark contamination and statistical uncertainty.</p>
+  <p class="hands-on"><b>Hands-on:</b> temperature, top-k, and nucleus samplers; a key–value cache, with timing measurements; speculative decoding, with a check that its output distribution is unchanged; best-of-n sampling with a verifier.</p>
 </li>
 
 <li><b>Week 9 (optional): Alignment and Language Model Agents</b>
   <p>We examine how desired model behavior is specified and evaluated, and the limits of these approaches. We then study language models as agents, combining retrieval, tool use, and planning in repeated cycles of observation and action.</p>
+  <p class="hands-on"><b>Hands-on:</b> a tool-use loop in which a small model calls a calculator, with checks on the answers it returns.</p>
 </li>
 
 </ul>
