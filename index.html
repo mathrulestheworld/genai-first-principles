@@ -29,7 +29,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <dl>
   <dd><b>Instructor</b>: <a href="https://mathrulestheworld.github.io/">Madhusudhan Reddy Pittu</a></dd>
   <dd><b>Format</b>: Eight weekly lectures of approximately two hours, with an optional ninth session. Wednesdays, 3–5 pm.</dd>
-  <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part, listed below. Notes, slides, code, and references are posted here as each week runs.</dd>
+  <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part, listed below. Notes, slides, <a href="https://github.com/mathrulestheworld/tinylm">code</a>, and references are posted here as each week runs.</dd>
   <dd><b>Supplementary material</b>: <a href="notes/index.html">Background Notes on Machine Learning and AI</a></dd>
 </dl>
 
@@ -42,6 +42,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <h3>Announcements</h3>
 <ul>
   <li>Lecture 1 notes are posted.</li>
+  <li>The Week 1 hands-on <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week01_autograd.ipynb">notebook</a> is posted: an autograd engine written from scratch, the first piece of the course codebase, <a href="https://github.com/mathrulestheworld/tinylm">tinylm</a>.</li>
   <li>The Background Notes on Machine Learning and AI are online as supplementary reading.</li>
 </ul>
 
@@ -52,7 +53,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 
 <li id="current"><b>Week 1: (Artificial) Intelligence, Learning, Language, and Meaning</b>
   <p>What does it mean for a machine to be intelligent, to learn, or to use language? We explore these questions through Turing’s imitation game, induction and PAC learning, language learning in the limit, and the relationship between form and meaning. We then establish the AI, machine learning, and deep learning concepts used throughout the course. (<a href="materials/week-01/lecture-01-notes.pdf">notes</a>)</p>
-  <p class="hands-on"><b>Hands-on:</b> a small automatic-differentiation engine, used to train logistic regression and a two-layer network. It is the first piece of the codebase that grows into our language model.</p>
+  <p class="hands-on"><b>Hands-on:</b> a small automatic-differentiation engine, used to train logistic regression and a two-layer network. It is the first piece of the codebase that grows into our language model. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week01_autograd.ipynb">notebook</a>)</p>
 </li>
 
 <li><b>Week 2: Language Modeling: From Grammars and Counts to Neural Networks</b>
@@ -72,7 +73,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 
 <li><b>Week 5: From Base Models to Assistants</b>
   <p>We examine what pretrained models can do through completion, prompting, and in-context learning, including ways to elicit reasoning. We then introduce the gap between predicting text and following instructions, and the ideas behind instruction tuning and learning from feedback. This provides the motivation for the training methods developed in Weeks 6 and 7.</p>
-  <p class="hands-on"><b>Hands-on:</b> in-context learning experiments with small Transformers (copying by induction heads, in-context linear regression) and few-shot prompting of the model pretrained in Week 4.</p>
+  <p class="hands-on"><b>Hands-on:</b> a chat template and supervised fine-tuning, with LoRA written from scratch, that turn our pretrained model into a small chatbot: it writes short stories on request and answers arithmetic questions. A short demonstration of in-context learning.</p>
 </li>
 
 <li><b>Week 6: Reinforcement Learning for Sequence Generation</b>
@@ -82,7 +83,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 
 <li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
   <p>We study how language models are trained using demonstrations, preference judgments, and verifiable rewards. Topics include supervised fine-tuning, reward modeling, reinforcement learning from human feedback, direct preference optimization, and training reasoning models. We examine the objectives behind these methods and failure modes such as reward hacking and sycophancy.</p>
-  <p class="hands-on"><b>Hands-on:</b> supervised fine-tuning with LoRA written from scratch, a reward model, DPO, and GRPO training our model on multi-digit arithmetic, tracking reward, KL divergence from the starting model, and response length.</p>
+  <p class="hands-on"><b>Hands-on:</b> a reward model, DPO, and GRPO that improve the chatbot, including multi-digit arithmetic with verifiable rewards, while tracking reward, KL divergence from the starting model, and response length.</p>
 </li>
 
 <li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
