@@ -36,7 +36,8 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <hr>
 <h3>About</h3>
 <p>This course introduces generative AI through the study of large language models, combining mathematical foundations with hands-on implementation. Over the eight weeks we build a small language model from scratch, small enough to train on a laptop in minutes to an hour: we implement its components, train and fine-tune it, probe its behavior, and evaluate its outputs. The aim is a complete working understanding of the model: how it works, how to build it, and how to investigate what it has learned.</p>
-<p>We trace the path from formal and statistical models of language to Transformers, pretraining, post-training, and inference. Throughout, we ask the same questions: what can these models learn and compute, from what data, with what resources, and with what guarantees? The implementation gives a concrete setting in which to explore these questions, connecting theory with experiment.</p>
+<p>We trace the path from statistical models of language to Transformers, pretraining, post-training, and inference. Throughout, we ask the same questions: what can these models learn and compute, from what data, with what resources, and with what guarantees? The implementation gives a concrete setting in which to explore these questions, connecting theory with experiment.</p>
+<p><b>How these materials are made.</b> The course materials are put together with the help of AI. I do the high-level planning, and I read and refine all of the material thoroughly myself. For this reason the materials are constantly updated and refined. This is the first version of the course, so please bear with me :)</p>
 
 <hr>
 <h3>Announcements</h3>
@@ -57,14 +58,14 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
   <p class="hands-on"><b>Hands-on:</b> a tensor-based autograd engine built from scratch, covered during the lecture's hands-on segment: computation graphs, reverse-mode differentiation, and gradient checks. We use it to train logistic regression and a two-layer network—the first piece of the codebase that grows into our language model. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week01_autograd.ipynb">notebook</a>)</p>
 </li>
 
-<li id="current"><b>Week 2: Language Modeling: From Grammars and Counts to Neural Networks</b>
-  <p>We study language as a formal object and a stochastic source, introducing grammars, automata, and probabilistic models. Topics include n-gram models, smoothing, cross-entropy and perplexity, hidden Markov models, and distributional semantics. Word embeddings and early neural language models introduce the transition from counting occurrences to learning representations.</p>
-  <p class="hands-on"><b>Hands-on:</b> tokenizers, n-gram models with smoothing, a sampler, and an evaluation harness that measures perplexity; word vectors from co-occurrence counts.</p>
+<li id="current"><b>Week 2: Language Modeling: From Counts to Neural Networks</b>
+  <p>We treat text as the output of a random source and build language models by counting: n-gram models, smoothing, and their evaluation with cross-entropy and perplexity. Word vectors computed from co-occurrence counts show how much of a word’s meaning can be read from the company it keeps. We then turn to neural language models, which share what they learn across similar contexts: the neural probabilistic language model of Bengio and colleagues, and recurrent networks, with backpropagation through time, vanishing gradients, and the LSTM.</p>
+  <p class="hands-on"><b>Hands-on:</b> n-gram models with smoothing, a sampler, and an evaluation harness that measures perplexity; word vectors from co-occurrence counts; a character-level LSTM, compared with the n-gram models on held-out stories.</p>
 </li>
 
 <li><b>Week 3: Attention and Transformers: Computation and Limits</b>
-  <p>We trace the path from recurrent networks to attention and the Transformer architecture. A step-by-step account of the computation explains its time and memory costs and the role of the key–value cache. We then examine Transformers’ computational capabilities and limits, paying attention to the assumptions behind formal results.</p>
-  <p class="hands-on"><b>Hands-on:</b> a character-level recurrent baseline, then a decoder-only Transformer written from scratch, tested so that later tokens cannot influence earlier predictions. The two are compared on held-out text.</p>
+  <p>We start from what recurrent networks could not do and introduce attention and the Transformer architecture. A step-by-step account of the computation explains its time and memory costs and the role of the key–value cache. We then examine Transformers’ computational capabilities and limits, paying attention to the assumptions behind formal results.</p>
+  <p class="hands-on"><b>Hands-on:</b> a decoder-only Transformer written from scratch, tested so that later tokens cannot influence earlier predictions, and compared with the Week 2 LSTM on held-out text.</p>
 </li>
 
 <li><b>Week 4: Pretraining: Data, Optimization, and Scale</b>
