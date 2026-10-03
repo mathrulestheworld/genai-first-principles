@@ -42,6 +42,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <hr>
 <h3>Announcements</h3>
 <ul>
+  <li>The Week 2 hands-on <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_language_models.ipynb">notebook</a> is posted: count models, word2vec, a neural language model, and recurrent networks, all on TinyStories.</li>
   <li>Lecture 1 slides are posted, as a PDF and as the original PowerPoint file (with the builds and the Mark I Perceptron film clip).</li>
   <li>Lecture 1 notes are posted.</li>
   <li>The Week 1 hands-on <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week01_autograd.ipynb">notebook</a> is posted: a tensor-based autograd engine written from scratch, the first piece of the course codebase, <a href="https://github.com/mathrulestheworld/tinylm">tinylm</a>.</li>
@@ -59,8 +60,8 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 2: Language Modeling: From Counts to Neural Networks</b>
-  <p>We treat text as the output of a random source and build language models by counting: n-gram models, smoothing, and their evaluation with cross-entropy and perplexity. Word vectors computed from co-occurrence counts show how much of a word’s meaning can be read from the company it keeps. We then turn to neural language models, which share what they learn across similar contexts: the neural probabilistic language model of Bengio and colleagues, and recurrent networks, with backpropagation through time, vanishing gradients, and the LSTM.</p>
-  <p class="hands-on"><b>Hands-on:</b> n-gram models with smoothing, a sampler, and an evaluation harness that measures perplexity; word vectors, from co-occurrence counts and by training skip-gram with negative sampling, projected to two and three dimensions; a character-level LSTM, compared with the n-gram models on held-out stories.</p>
+  <p>We treat text as the output of a random source and build language models by counting: n-gram models, smoothing, and their evaluation with cross-entropy and perplexity. The central part of the lecture is about word embeddings: vectors in which words used alike lie near each other, the idea behind semantic search, vector databases, and recommendation systems. We build them by counting contexts and by prediction (word2vec), and see why the two routes agree. We then build a neural language model that predicts the next word from learned word vectors, and introduce recurrent networks: backpropagation through time, vanishing gradients, and the LSTM.</p>
+  <p class="hands-on"><b>Hands-on:</b> n-gram models with smoothing, a sampler, and an evaluation harness that measures perplexity; word vectors from co-occurrence counts and from word2vec, trained live and explored in two and three dimensions, with nearest-neighbor search; a neural language model in the style of Bengio et al., trained and examined; character-level RNN and LSTM models to take home. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_language_models.ipynb">notebook</a>)</p>
 </li>
 
 <li><b>Week 3: Attention and Transformers: Computation and Limits</b>
