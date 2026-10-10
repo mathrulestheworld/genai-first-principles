@@ -42,6 +42,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <hr>
 <h3>Announcements</h3>
 <ul>
+  <li>The plan for Weeks 4–7 has changed: pretraining and base models are now one lecture (Week 4), reinforcement learning has two (classical in Week 5, deep in Week 6), and Week 7 covers all of post-training. The descriptions below and the roadmap in the Lecture 1 <a href="materials/week-01/lecture-01-notes.pdf">notes</a> and <a href="materials/week-01/lecture-01-slides.pdf">slides</a> follow the new plan.</li>
   <li>Lecture 2 slides are posted, as a <a href="materials/week-02/lecture-02-slides.pdf">PDF</a> and as the original PowerPoint file (with the builds). The <a href="materials/week-02/lecture-02-notes.pdf">notes</a> now tell Markov's 1913 experiment in full (Appendix A.1).</li>
   <li>Lecture 2 <a href="materials/week-02/lecture-02-notes.pdf">notes</a> are posted, with the <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_handson.ipynb">in-class notebook</a>: four short stops on counting, word vectors, neural language models, and recurrent networks.</li>
   <li>The Week 2 hands-on <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_language_models.ipynb">notebook</a> is posted: count models, word2vec, a neural language model, and recurrent networks, all on TinyStories.</li>
@@ -64,28 +65,28 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 3: Attention and Transformers: Computation and Limits</b>
-  <p>We start from what recurrent networks could not do and introduce attention and the Transformer architecture. A step-by-step account of the computation explains its time and memory costs and the role of the key–value cache. We then examine Transformers’ computational capabilities and limits, paying attention to the assumptions behind formal results.</p>
+  <p>Attention came out of machine translation, and we start there: statistical translation and its word alignments learned by EM, neural encoder–decoders and their fixed-size bottleneck, and attention as a learned, soft alignment. We then read the 2017 Transformer paper closely and build the decoder-only Transformer step by step, accounting for its time and memory costs and the key–value cache, and follow how the architecture has changed from 2017 to today’s models. We end with what Transformers can and cannot compute, paying attention to the assumptions behind formal results.</p>
   <p class="hands-on"><b>Hands-on:</b> a decoder-only Transformer written from scratch, tested so that later tokens cannot influence earlier predictions, and compared with the Week 2 LSTM on held-out text.</p>
 </li>
 
-<li><b>Week 4: Pretraining: Data, Optimization, and Scale</b>
-  <p>How do tokens, data, and a training objective produce a base language model? We examine tokenization, data preparation, and optimization, then study empirical scaling laws and the allocation of a fixed compute budget. We also introduce the systems techniques that make large-scale training possible.</p>
-  <p class="hands-on"><b>Hands-on:</b> a byte-level BPE tokenizer, a data pipeline, and a full training loop. We pretrain our model at three sizes on the same token budget and fit a scaling law to the results.</p>
+<li><b>Week 4: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
+  <p>How do tokens, data, and a next-token objective produce a base model, and what can that model already do? We examine tokenization, the preparation of web-scale data, and optimization at scale, then study empirical scaling laws and how to divide a fixed compute budget between model size and data, with the systems techniques that make large-scale training possible. The result is a model that completes text and learns from examples placed in its prompt; we look at how this in-context learning has been explained, at the debate about emergent abilities, and at why a base model is not yet an assistant.</p>
+  <p class="hands-on"><b>Hands-on:</b> a byte-level BPE tokenizer, a data pipeline, and a full training loop. We pretrain our model at three sizes on the same token budget, fit a scaling law to the results, and probe the base model for in-context learning.</p>
 </li>
 
-<li><b>Week 5: From Base Models to Assistants</b>
-  <p>We examine what pretrained models can do through completion, prompting, and in-context learning, including ways to elicit reasoning. We then introduce the gap between predicting text and following instructions, and the ideas behind instruction tuning and learning from feedback. This provides the motivation for the training methods developed in Weeks 6 and 7.</p>
-  <p class="hands-on"><b>Hands-on:</b> a chat template and supervised fine-tuning, with LoRA written from scratch, that turn our pretrained model into a small chatbot: it writes short stories on request and answers arithmetic questions. A short demonstration of in-context learning.</p>
+<li><b>Week 5: Classical Reinforcement Learning: Bandits, Planning, and Learning from Experience</b>
+  <p>Post-training relies on reinforcement learning, and the next two weeks build it from first principles. We start with bandits, the simplest setting in which exploration and exploitation conflict, and measure algorithms by their regret. We then define Markov decision processes, values, and the Bellman equations, solve them with a known model by value and policy iteration, and prove why these converge. Finally we learn from experience without a model, by Monte Carlo methods, temporal-difference learning (from Samuel’s checkers player to TD-Gammon), SARSA, and Q-learning.</p>
+  <p class="hands-on"><b>Hands-on:</b> bandit algorithms compared by their regret; value iteration and policy iteration on a small gridworld; Monte Carlo methods, TD learning, SARSA, and Q-learning, with a cliff-walking task on which on-policy and off-policy learning choose different paths.</p>
 </li>
 
-<li><b>Week 6: Reinforcement Learning for Sequence Generation</b>
-  <p>We develop the reinforcement learning foundations needed for language model post-training: bandits, Markov decision processes, value functions, and policy gradients. We then formulate text generation as a sequential decision problem, connecting token choices and response-level rewards to regularized policy optimization.</p>
-  <p class="hands-on"><b>Hands-on:</b> value iteration, REINFORCE, and PPO on small decision problems, then REINFORCE applied to our language model.</p>
+<li><b>Week 6: Deep Reinforcement Learning: Value Networks, Policy Gradients, and Search</b>
+  <p>Tables of values do not scale to Atari or Go. We follow the two routes deep reinforcement learning took: learning values with neural networks (deep Q-networks, and why bootstrapping with function approximation can diverge), and learning policies directly by gradient (REINFORCE, baselines, actor–critic methods, trust regions, and PPO, the algorithm used for RLHF). We then combine learning with search in AlphaGo, AlphaZero, and MuZero, and end with learning from demonstrations and from human preferences, the bridge to language models.</p>
+  <p class="hands-on"><b>Hands-on:</b> a deep Q-network and PPO on a pole-balancing task, REINFORCE with and without a baseline, and AlphaZero-style self-play on tic-tac-toe, checked against the game’s exact solution.</p>
 </li>
 
 <li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
-  <p>We study how language models are trained using demonstrations, preference judgments, and verifiable rewards. Topics include supervised fine-tuning, reward modeling, reinforcement learning from human feedback, direct preference optimization, and training reasoning models. We examine the objectives behind these methods and failure modes such as reward hacking and sycophancy.</p>
-  <p class="hands-on"><b>Hands-on:</b> a reward model, DPO, and GRPO that improve the chatbot, including multi-digit arithmetic with verifiable rewards, while tracking reward, KL divergence from the starting model, and response length.</p>
+  <p>A base model continues text; an assistant follows instructions. We follow the ideas that closed this gap, from instruction tuning and InstructGPT to ChatGPT and today’s reasoning models. Topics include supervised fine-tuning, text generation as a reinforcement learning problem with a KL-regularized objective and its closed-form optimum, reward models and reinforcement learning from human feedback, direct preference optimization, and reinforcement learning with verifiable rewards. We examine the objective behind each method and failure modes such as reward hacking and sycophancy.</p>
+  <p class="hands-on"><b>Hands-on:</b> a chat template and supervised fine-tuning, with LoRA written from scratch, that turn our pretrained model into a small chatbot; then a reward model, DPO, and GRPO that improve it, including multi-digit arithmetic with verifiable rewards, while tracking reward, KL divergence from the starting model, and response length.</p>
 </li>
 
 <li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
