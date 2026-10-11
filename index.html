@@ -65,8 +65,8 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 3: Sequence Modeling, Attention, and Transformers</b>
-  <p>Sequence transduction models an output sequence conditioned on an input sequence, as in translation. Recurrent encoder–decoders compress the input into a fixed-size state; attention gives the decoder direct access to every input position. Transformers replace recurrence with self-attention, so all positions are computed in parallel during training, while generation still proceeds one token at a time. With a causal mask, a stack of Transformer blocks is a decoder-only language model. Its costs depend on model size, context length, and the key–value cache, and later architectures reduce them. Generated intermediate tokens add sequential computation beyond a single fixed-depth pass.</p>
-  <p class="hands-on"><b>Hands-on:</b> a decoder-only Transformer built from scratch, checked for future-token leakage, and compared with the Week 2 LSTM on held-out text.</p>
+  <p>How can a machine read a sentence in one language and write it in another, when the two differ in length and word order? The answers found in machine translation shaped today’s language models. We begin with the first neural translators of 2014, which squeezed a whole sentence into one vector and wrote the translation word by word, and see why long sentences defeated them. We then follow the ideas that removed these limits: attention, which lets the network look back at any input word as it writes, and the Transformer, built from attention alone, which reads all the words of a sentence at once. We take the Transformer apart, see what each piece is for, and end with the version used as a language model, which the rest of the course builds on.</p>
+  <p class="hands-on"><b>Hands-on:</b> a Transformer language model built from scratch, a test that it cannot peek at the words it is asked to predict, and a comparison with the Week 2 LSTM on the same stories.</p>
 </li>
 
 <li><b>Week 4: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
