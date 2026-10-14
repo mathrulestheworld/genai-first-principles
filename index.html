@@ -29,7 +29,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <dl>
   <dd><b>Instructor</b>: <a href="https://mathrulestheworld.github.io/">Madhusudhan Reddy Pittu</a></dd>
   <dd><b>Format</b>: Eight weekly lectures of approximately two hours, with an optional ninth session. Wednesdays, 3–5 pm.</dd>
-  <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part, listed below. Notes, slides, <a href="https://github.com/mathrulestheworld/tinylm">code</a>, and references are posted here as each week runs.</dd>
+  <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part. The weeks are listed below; each week's description, notes, slides, <a href="https://github.com/mathrulestheworld/tinylm">code</a>, and references are posted here as the week runs.</dd>
   <dd><b>Supplementary material</b>: <a href="notes/index.html">Background Notes on Machine Learning and AI</a></dd>
 </dl>
 
@@ -60,33 +60,21 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
-  <p>What does a network look like when attention is the only way its words communicate? The Transformer, introduced in 2017 for translation, is the answer, and its decoder became the language model behind today’s systems. We begin with self-attention as the Transformer computes it: every word asks a question of every other word, through learned queries, keys, and values, and collects their answers in proportion to how well they match. We then add what attention alone lacks: a sense of word order, computation within each word, and the shortcuts and normalization that let deep stacks of layers train. We assemble the original translation model and the decoder-only language model, follow a batch of text through every step, and see why training can process all the words of a text at once while generation still writes one word at a time. We end by counting what the model costs: its parameters, its computation, and the memory it needs to generate.</p>
-  <p class="hands-on"><b>Hands-on:</b> assembling a small Transformer language model from prepared parts, testing that it cannot peek at the words it is asked to predict, and inspecting its training and generation.</p>
 </li>
 
 <li><b>Week 5: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
-  <p>How does predicting the next word, over a large amount of text, produce a model that seems to know so much? We begin with the raw material: how text is cut into tokens, and how training data is collected, cleaned, and kept apart from the tests. We then train: the training loop, the optimizer, and how to divide a fixed budget of computation between a larger model and more data, guided by scaling laws, the regular relationships between size, data, and loss. The result is a base model, which continues text, and can pick up a task from examples placed in its prompt without any change to its weights. We end by asking what this in-context learning is, how far an evaluation of a base model can be trusted, and why a base model is not yet an assistant.</p>
-  <p class="hands-on"><b>Hands-on:</b> training or inspecting a small family of models of different sizes on one budget, plotting their held-out loss, and testing one in-context-learning behavior of the base model.</p>
 </li>
 
 <li><b>Week 6: Reinforcement Learning: Returns, Policy Gradients, and Policy Improvement</b>
-  <p>A language model can be improved not only by examples of good text, but by rewards for the text it produces. Reinforcement learning is the mathematics of learning from such rewards. We begin with the simplest setting, repeated choices whose rewards are uncertain, and then describe decisions made in sequence: states, actions, returns, and the value of following a policy. We then derive the policy gradient, which turns “make good outcomes more likely” into a gradient of the probabilities of actions, and see why its estimates are noisy and how baselines and learned critics reduce the noise. We end with why each update must be kept small when the policy also produces its own training data, which leads to PPO, the method Week 7 uses to train language models from feedback.</p>
-  <p class="hands-on"><b>Hands-on:</b> REINFORCE with and without a baseline on one small problem, measuring the rewards and how much the gradient estimates vary.</p>
 </li>
 
 <li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
-  <p>A base model continues text; an assistant follows instructions. We follow the ideas that closed this gap. We begin with demonstrations: fine-tuning on examples of good responses, which teaches a model the format and habits of an assistant. We then learn from preferences, people’s choices between two responses: a reward model trained on them, and reinforcement learning that raises the reward while keeping the model close to where it started, a balance that also leads to a simpler method, direct preference optimization. We then turn to rewards that can be checked automatically, such as whether an answer is correct, which drive today’s reasoning models. We end with how these methods fail, through rewards that can be gamed and preferences that miss what was intended, and how to tell a real improvement from an apparent one.</p>
-  <p class="hands-on"><b>Hands-on:</b> supervised fine-tuning that turns our model into a small chatbot, then direct preference optimization on prepared preferences; as an extension, reinforcement learning on arithmetic problems whose answers can be checked.</p>
 </li>
 
 <li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
-  <p>A trained model gives probabilities for the next token; turning them into text involves choices that matter. We begin with decoding rules, from always taking the likeliest token to sampling, and how they trade variety against reliability. We then spend more computation when answering: writing out intermediate steps, sampling many answers, and checking them. We then make answering fast, by reusing past computation, serving many requests together, and letting a small model draft tokens for a large one to check. We end with evaluation: how to tell a better answer from a longer one, or from one that simply used more computation, and how much a benchmark score can be trusted.</p>
-  <p class="hands-on"><b>Hands-on:</b> comparing decoding rules on our model and measuring one speed-up, such as a key–value cache; speculative decoding as an extra exercise.</p>
 </li>
 
 <li><b>Week 9 (optional): Alignment and Language Model Agents</b>
-  <p>What changes when a language model does not just answer, but acts? We look at agents that combine a language model with tools, retrieved information, and repeated rounds of planning, acting, and checking the results. We then ask how to specify what such a system should do, how to evaluate whether it does it reliably, and what can go wrong when a specified reward differs from the intended outcome, with human oversight as one safeguard.</p>
-  <p class="hands-on"><b>Hands-on:</b> a small agent that calls a calculator, with checks on its answers.</p>
 </li>
 
 </ul>
