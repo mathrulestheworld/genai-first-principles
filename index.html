@@ -42,6 +42,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <hr>
 <h3>Announcements</h3>
 <ul>
+  <li>Lecture 3 <a href="materials/week-03/lecture-03-notes.pdf">notes</a> are posted: translation as conditional language modeling, recurrent encoder–decoders, attention, and the models that removed recurrence on the way to the Transformer.</li>
   <li>The course plan has changed from Week 3 on. Week 3 is now <i>Sequence Modeling, Translation, and Attention</i>, and the Transformer has a lecture of its own in Week 4. Pretraining and base models move to Week 5, reinforcement learning is one focused lecture in Week 6, and Weeks 7 and 8 keep post-training and inference. The descriptions below and the roadmap in the Lecture 1 <a href="materials/week-01/lecture-01-notes.pdf">notes</a> and <a href="materials/week-01/lecture-01-slides.pdf">slides</a> follow the new plan.</li>
   <li>Lecture 2 slides are posted, as a <a href="materials/week-02/lecture-02-slides.pdf">PDF</a> and as the original PowerPoint file (with the builds). The <a href="materials/week-02/lecture-02-notes.pdf">notes</a> now tell Markov's 1913 experiment in full (Appendix A.1).</li>
   <li>Lecture 2 <a href="materials/week-02/lecture-02-notes.pdf">notes</a> are posted, with the <a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_handson.ipynb">in-class notebook</a>: four short stops on counting, word vectors, neural language models, and recurrent networks.</li>
@@ -65,7 +66,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 3: Sequence Modeling, Translation, and Attention</b>
-  <p>A language model predicts what comes next. A translator must also preserve information from a source sentence, despite changes in length and word order. Early neural translators encoded the source into a fixed-size state from which a decoder generated the translation. This worked remarkably well, but forced every prediction to depend on the same compressed representation. Attention gave the decoder a fresh, learned read of the source at each step. A separate difficulty remained: recurrent computation proceeded one position at a time. Convolution and self-attention offered alternatives, leading to the Transformer’s combination of direct access to source information and parallel computation within each layer during training.</p>
+  <p>A language model predicts what comes next. A translator must also carry what a source sentence says into a target sentence, despite changes in length and word order. Early neural translators encoded the source into a fixed-size state from which a decoder generated the translation, so every word was predicted from the same summary, and some lost accuracy as sentences grew longer. Attention gave the decoder a fresh, learned read of the source at each step. A separate difficulty remained: recurrent networks compute one position at a time, even in training. Convolution and then self-attention removed this chain, leading to the Transformer’s combination of direct access to source information and parallel computation within each layer during training. (<a href="materials/week-03/lecture-03-notes.pdf">notes</a>)</p>
   <p class="hands-on"><b>Hands-on:</b> writing the attention step of a trained English–French translator and checking it against the model; comparing the translator with and without attention; and seeing where it looks as it translates, including at a word it gets wrong.</p>
 </li>
 
@@ -115,6 +116,6 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </ul>
 
 <hr>
-<p class="note">Updated 11 October 2026.</p>
+<p class="note">Updated 14 October 2026.</p>
 <script>function currentTheme(){var t=document.documentElement.getAttribute("data-theme");return t?t:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}function themeLabel(){var b=document.getElementById("theme-toggle");if(b)b.textContent=currentTheme()==="dark"?"Light mode":"Dark mode";}function toggleTheme(){var t=currentTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("theme",t);}catch(e){}themeLabel();}themeLabel();</script>
 </body></html>
