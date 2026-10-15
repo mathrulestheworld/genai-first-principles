@@ -54,12 +54,12 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
   <p class="hands-on"><b>Hands-on:</b> in class, four short stops: counting and Shannon’s samples; word vectors from counts and from word2vec; the bigram network and the fixed-window model; recurrent networks, samples, and a memory test (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_handson.ipynb">in-class notebook</a>). To take home, every experiment of the notes, including smoothing, word2vec trained live, and character- and word-level LSTMs (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week02_language_models.ipynb">notebook</a>).</p>
 </li>
 
-<li id="current"><b>Week 3: Sequence Modeling, Translation, and Attention</b>
+<li><b>Week 3: Sequence Modeling, Translation, and Attention</b>
   <p>A language model predicts what comes next. A translator must also carry what a source sentence says into a target sentence, despite changes in length and word order. Early neural translators encoded the source into a fixed-size state from which a decoder generated the translation, so every word was predicted from the same summary, and some lost accuracy as sentences grew longer. Attention gave the decoder a fresh, learned read of the source at each step. A separate difficulty remained: recurrent networks compute one position at a time, even in training. Convolution and then self-attention removed this chain, leading to the Transformer’s combination of direct access to source information and parallel computation within each layer during training. (<a href="materials/week-03/lecture-03-notes.pdf">notes</a>, <a href="materials/week-03/lecture-03-slides.pdf">slides</a>, <a href="materials/week-03/lecture-03-slides.pptx">slides as PowerPoint</a>)</p>
-  <p class="hands-on"><b>Hands-on:</b> writing the attention step of a trained English–French translator and checking it against the model; comparing the translator with and without attention; and seeing where it looks as it translates, including at a word it gets wrong.</p>
+  <p class="hands-on"><b>Hands-on:</b> writing the attention step of a trained English–French translator and checking it against the model; comparing the translator with and without attention; and seeing where it looks as it translates, including at a word it gets wrong. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week03_attention.ipynb">notebook</a>)</p>
 </li>
 
-<li><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
+<li id="current"><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
 </li>
 
 <li><b>Week 5: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
