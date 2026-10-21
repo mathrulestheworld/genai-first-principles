@@ -60,6 +60,8 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
+  <p>Week 3 built a toy translator from attention alone: each word it writes takes a weighted read of the source sentence. It fails in four ways: it cannot tell where a word stands, it sees each source word without its neighbors, it knows only the last word it wrote, and it gathers one kind of information while computing nothing with it. The Transformer answers each in turn: position vectors; self-attention, in which the words of a sentence read one another, masked in the translation so that each word sees only those already written; and several heads, with a small network at each word. Layer normalization and residual connections let deep stacks of these blocks train. We add the parts to the toy one at a time, measuring what each buys, until it becomes the Transformer of 2017. Its decoder alone is a language model, the design of nearly every large language model since: we follow a batch of text through it and see why training predicts every word of a text at once, while generation still writes one word at a time. We end with what the model costs, in parameters, computation, and memory, and with what it cannot do.</p>
+  <p class="hands-on"><b>Hands-on:</b> assembling a small Transformer language model from prepared parts, testing that it cannot peek at the words it is asked to predict, and inspecting its training and generation.</p>
 </li>
 
 <li><b>Week 5: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
@@ -93,6 +95,6 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </ul>
 
 <hr>
-<p class="note">Updated 14 October 2026.</p>
+<p class="note">Updated 20 October 2026.</p>
 <script>function currentTheme(){var t=document.documentElement.getAttribute("data-theme");return t?t:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}function themeLabel(){var b=document.getElementById("theme-toggle");if(b)b.textContent=currentTheme()==="dark"?"Light mode":"Dark mode";}function toggleTheme(){var t=currentTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("theme",t);}catch(e){}themeLabel();}themeLabel();</script>
 </body></html>
