@@ -59,18 +59,20 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
   <p class="hands-on"><b>Hands-on:</b> writing the attention step of a trained English–French translator and checking it against the model; comparing the translator with and without attention; and seeing where it looks as it translates, including at a word it gets wrong. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week03_attention.ipynb">notebook</a>)</p>
 </li>
 
-<li id="current"><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
-  <p>Attention lets a model read: at each step it takes a weighted average of the words it may see, with more weight on those that match what it looks for. A translator built from this read alone barely translates. It cannot tell one word order from another, sees each word without its neighbors, knows only the last word it wrote, and computes nothing with what it reads. We build the Transformer from that translator one part at a time: positions, self-attention, several reads with a small network at each word, and the layer normalization and residual connections that let deep stacks of these parts train. The Transformer was designed for translation, but removing its encoder leaves a decoder that predicts each word from the words before it: a language model, the design of nearly every large language model since. We conclude with its drawbacks and limits, such as costs that grow with the length of the text, and recent variants that address them. (<a href="materials/week-04/lecture-04-notes.pdf">notes</a>)</p>
-  <p class="hands-on"><b>Hands-on:</b> assembling a small Transformer language model from prepared parts; testing that it cannot peek at the words it is asked to predict, and that one pass over a text gives the same predictions as reading it one prefix at a time; and inspecting its training and generation.</p>
+<li><b>Week 4: Transformers: Architecture, Computation, and Language Modeling</b>
+  <p>Attention lets a model read: at each step it takes a weighted average of the words it may see, with more weight on those that match what it looks for. A translator built from this read alone barely translates. It cannot tell one word order from another, sees each word without its neighbors, knows only the last word it wrote, and computes nothing with what it reads. We build the Transformer from that translator one part at a time: positions, self-attention, several reads with a small network at each word, and the layer normalization and residual connections that let deep stacks of these parts train. The Transformer was designed for translation, but removing its encoder leaves a decoder that predicts each word from the words before it: a language model, the design of nearly every large language model since. We conclude with its drawbacks and limits, such as costs that grow with the length of the text, and recent variants that address them. (<a href="materials/week-04/lecture-04-notes.pdf">notes</a>, <a href="materials/week-04/lecture-04-slides.pdf">slides</a>, <a href="materials/week-04/lecture-04-slides.pptx">slides as PowerPoint</a>)</p>
+  <p class="hands-on"><b>Hands-on:</b> assembling a small Transformer language model from prepared parts; testing that it cannot peek at the words it is asked to predict, and that one pass over a text gives the same predictions as reading it one prefix at a time; and inspecting its training and generation. (<a href="https://github.com/mathrulestheworld/tinylm/blob/main/notebooks/week04_transformer.ipynb">notebook</a>)</p>
 </li>
 
-<li><b>Week 5: Pretraining and Base Models: Data, Scale, and In-Context Learning</b>
+<li id="current"><b>Week 5: Pretraining and Chat Models: Tokens, Optimizers, Scale, and Fine-Tuning</b>
+  <p>Week 4’s Transformer, trained on children’s stories, writes stories of its own. How did the same design become GPT-3, which continues almost any text, and then ChatGPT, which answers a request? We begin with what followed the Transformer: GPT and BERT, which were pretrained on unlabeled text and then fine-tuned for each task, and the move to ever larger models. We then build pretraining one part at a time: tokenizers, which turn any text into tokens from a fixed vocabulary; the optimizers, from gradient descent to Adam, and the training recipe around them, enough to read a real pretraining configuration; and scaling laws, which say how large a model should be for a given budget. The result is a base model, which continues documents and can copy from its context, but does not answer. We end by turning it into a small chat model: a conversation written as tokens, with system, user, and assistant roles; a short midtraining on conversations; and supervised fine-tuning on example answers.</p>
+  <p class="hands-on"><b>Hands-on:</b> writing byte-pair encoding and one step of Adam, and checking both against the notes; comparing optimizers on a small model; measuring our base model and finding the attention head that lets it copy from its context; then writing the chat template with its loss mask, and fine-tuning the base model into a small chat model.</p>
 </li>
 
 <li><b>Week 6: Reinforcement Learning: Returns, Policy Gradients, and Policy Improvement</b>
 </li>
 
-<li><b>Week 7: Post-Training: Demonstrations, Preferences, and Rewards</b>
+<li><b>Week 7: Post-Training: Preferences, Rewards, and Reasoning</b>
 </li>
 
 <li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
@@ -95,6 +97,6 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </ul>
 
 <hr>
-<p class="note">Updated 20 October 2026.</p>
+<p class="note">Updated 26 October 2026.</p>
 <script>function currentTheme(){var t=document.documentElement.getAttribute("data-theme");return t?t:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}function themeLabel(){var b=document.getElementById("theme-toggle");if(b)b.textContent=currentTheme()==="dark"?"Light mode":"Dark mode";}function toggleTheme(){var t=currentTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("theme",t);}catch(e){}themeLabel();}themeLabel();</script>
 </body></html>
