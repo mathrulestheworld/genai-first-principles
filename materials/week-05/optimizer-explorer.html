@@ -11,10 +11,12 @@
 <!-- The math glyphs Google's default subsets leave out (arrows, nabla, radical, sub/superscript digits). -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&amp;text=%E2%86%90%E2%88%87%E2%88%9A%E2%88%9E%E2%82%80%E2%82%81%E2%82%82%E2%81%B0%E2%81%B4%E2%81%B5%E2%81%B6%E2%81%B7%E2%81%B8%E2%81%B9%E2%81%BB&amp;display=swap">
 <style>
-/* Visual language after the interactive figures of Gabriel Goh, "Why Momentum Really Works", Distill (2017),
-   CC BY 4.0: slate-blue filled log contours with faint isolines, iterates drawn as dots joined by thin lines,
-   a draggable start handle, a ringed and labelled optimum, thin-track sliders with a small round thumb and
-   light ticks, and bold small figure labels. Type: Source Serif 4 (title, prose, math) with Source Sans 3 (UI).
+/* The contour plot is ported from the code of Gabriel Goh, "Why Momentum Really Works", Distill (2017),
+   CC BY 4.0 (github.com/distillpub/post--momentum): the filled log-spaced contours of assets/lib/contour_plot.js
+   (its marching squares, smoothing, levels and colourScale), the iterate drawing of assets/iterates.js and
+   plot2dGen in assets/utils.js (path and dot sizes, the ring at the last iterate), its #pointerThingy start
+   handle, and the ringed optimum with ringPathGen's leader. The sliders, panels and loss plot take the
+   article's look without its code. Type: Source Serif 4 (title, prose, math) with Source Sans 3 (UI).
    Six path colors are tuned to stay apart under protan/deutan simulation (OKLab ΔE ≥ 10 all-pairs) in each theme;
    Nesterov is also dashed. */
 :root {
@@ -24,7 +26,7 @@
   --ink-3: #69717c;
   --rule: #e6e9ed;
   --rule-2: #cfd5dc;
-  --frame: #c3cad2;
+  --frame: #cccccc;
   --track: #e3e7eb;
   --tick: #b7bec7;
   --hover: #f3f5f7;
@@ -34,13 +36,14 @@
   --thumb-edge: rgba(20, 24, 29, 0.28);
   --thumb-shadow: rgba(20, 24, 29, 0.22);
   --check-ink: #ffffff;
-  --cm-hi: #eef2f5;
-  --cm-mid: #d2dce5;
-  --cm-lo: #9cb1c3;
-  --cm-line: #1d4264;
-  --cm-line-alpha: 0.3;
-  --handle: #1b2129;
+  --cm-0: #f0f4f6;
+  --cm-1: #d9e1e8;
+  --cm-2: #aec0ce;
+  --cm-line: #225577;
+  --cm-line-opacity: 0.2;
+  --handle: #ff6c00;
   --handle-ink: #ffffff;
+  --optimum: #3f5b75;
   --tip-bg: #ffffff;
   --tip-ink: #14181d;
   --tip-ink-2: #69717c;
@@ -76,13 +79,14 @@
     --thumb-edge: rgba(0, 0, 0, 0.55);
     --thumb-shadow: rgba(0, 0, 0, 0.5);
     --check-ink: #0d1116;
-    --cm-hi: #131a22;
-    --cm-mid: #1e2c3a;
-    --cm-lo: #3b546c;
-    --cm-line: #b3cde6;
-    --cm-line-alpha: 0.2;
-    --handle: #eef1f5;
-    --handle-ink: #0d1116;
+    --cm-0: #151d26;
+    --cm-1: #233243;
+    --cm-2: #405b75;
+    --cm-line: #b7d0e8;
+    --cm-line-opacity: 0.2;
+    --handle: #ff7a1a;
+    --handle-ink: #ffffff;
+    --optimum: #a3bdd6;
     --tip-bg: #222a34;
     --tip-ink: #eef1f5;
     --tip-ink-2: #9aa4b0;
@@ -115,13 +119,14 @@
   --thumb-edge: rgba(0, 0, 0, 0.55);
   --thumb-shadow: rgba(0, 0, 0, 0.5);
   --check-ink: #0d1116;
-  --cm-hi: #131a22;
-  --cm-mid: #1e2c3a;
-  --cm-lo: #3b546c;
-  --cm-line: #b3cde6;
-  --cm-line-alpha: 0.2;
-  --handle: #eef1f5;
-  --handle-ink: #0d1116;
+  --cm-0: #151d26;
+  --cm-1: #233243;
+  --cm-2: #405b75;
+  --cm-line: #b7d0e8;
+  --cm-line-opacity: 0.2;
+  --handle: #ff7a1a;
+  --handle-ink: #ffffff;
+  --optimum: #a3bdd6;
   --tip-bg: #222a34;
   --tip-ink: #eef1f5;
   --tip-ink-2: #9aa4b0;
@@ -216,6 +221,7 @@ a:hover { text-decoration-color: currentColor; }
 }
 .surfaces .thumb {
   display: block;
+  overflow: hidden;
   width: 64px;
   height: 40px;
   border-radius: 3px;
@@ -324,7 +330,6 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
 .panel-head .formula { color: var(--ink-2); font-size: 17px; white-space: normal; }
 .panel-head .sub { font-size: 14px; color: var(--ink-3); }
 .plot { position: relative; width: 100%; }
-.plot canvas { position: absolute; display: block; }
 .plot svg { position: absolute; inset: 0; display: block; overflow: visible; }
 #contour-svg { cursor: crosshair; touch-action: pan-y; }
 #contour-svg:focus-visible { outline-offset: 4px; }
@@ -354,28 +359,17 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
 .axis-label { fill: var(--ink-2); font-size: 14px; font-family: var(--font-math); font-style: italic; }
 .axis-label-ui { fill: var(--ink-3); font-size: 12px; font-family: var(--font-ui); }
 .empty-msg { fill: var(--ink-3); font-size: 15px; font-family: var(--font-serif); font-style: italic; }
-.plot-label {
-  fill: var(--ink);
-  font: 700 12.5px var(--font-ui);
-  letter-spacing: 0.01em;
-  paint-order: stroke;
-  stroke: var(--halo);
-  stroke-width: 3.5px;
-  stroke-linejoin: round;
-  pointer-events: none;
-}
+/* the article's figure styles: contour paths (contour_plot.js), .figtext labels (widgets.css),
+   iterates (plot2dGen), the optimum and "Solution" rings (iterates.js) */
+.field path { stroke: var(--cm-line); stroke-width: 0.8; stroke-opacity: var(--cm-line-opacity); vector-effect: non-scaling-stroke; }
+.figtext { fill: var(--ink); font-family: Helvetica, Arial, "Source Sans 3", sans-serif; font-size: 12px; font-weight: bold; pointer-events: none; }
+.iterates { fill: none; stroke-linecap: round; }
+.sol-ring { fill: none; stroke-width: 1; }
+.opt-ring, .opt-leader { fill: none; stroke: var(--optimum); stroke-width: 1; }
+.start use { cursor: grab; }
 .halo { fill: none; stroke: var(--halo); stroke-opacity: var(--halo-alpha); stroke-linejoin: round; stroke-linecap: round; }
 .trail { fill: none; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-.dots circle { stroke: var(--halo); stroke-width: 0.8; }
 .end { stroke: var(--halo); stroke-width: 1.6; }
-.exit { stroke: var(--halo); stroke-width: 1; stroke-linejoin: round; }
-.start { cursor: grab; }
-.start-ring { fill: none; stroke: var(--handle); stroke-width: 1.25; stroke-opacity: 0.7; }
-.start-disc { fill: var(--handle); stroke: var(--halo); stroke-width: 1.5; }
-.start-glyph { fill: var(--handle-ink); }
-.min-ring { fill: none; stroke: var(--ink-2); stroke-width: 1.3; }
-.min-ring-halo { fill: none; stroke: var(--halo); stroke-width: 3.5; stroke-opacity: 0.8; }
-.min-leader { stroke: var(--ink-2); stroke-width: 1; fill: none; }
 .hl-ring { fill: var(--halo); stroke-width: 2.25; }
 .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
 
@@ -531,15 +525,15 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
   <header class="masthead">
     <h1>Optimizer Explorer</h1>
     <p class="lede">Pick a two-parameter loss and a few optimizers, then move the sliders: each optimizer&rsquo;s path and loss curve are recomputed as you drag.</p>
-    <p class="credit">The idea and the interface follow Gabriel Goh, <a href="https://distill.pub/2017/momentum/" target="_blank" rel="noopener">&ldquo;Why Momentum Really Works&rdquo;</a>, Distill (2017); its contour, path and slider designs are adapted here under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>
+    <p class="credit">The idea and the interface follow Gabriel Goh, <a href="https://distill.pub/2017/momentum/" target="_blank" rel="noopener">&ldquo;Why Momentum Really Works&rdquo;</a>, Distill (2017); the contour plot reuses its code and the sliders follow its design, under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>
   </header>
 
   <fieldset class="surfaces" id="surface-picker">
     <legend>Loss surface</legend>
-    <input type="radio" name="surface" id="surface-bowl" value="bowl" checked><label for="surface-bowl"><canvas class="thumb" data-surface="bowl" aria-hidden="true"></canvas><span>Ill-conditioned bowl</span></label>
-    <input type="radio" name="surface" id="surface-rotated" value="rotated"><label for="surface-rotated"><canvas class="thumb" data-surface="rotated" aria-hidden="true"></canvas><span>Rotated bowl</span></label>
-    <input type="radio" name="surface" id="surface-scales" value="scales"><label for="surface-scales"><canvas class="thumb" data-surface="scales" aria-hidden="true"></canvas><span>Gradients of very different sizes</span></label>
-    <input type="radio" name="surface" id="surface-banana" value="banana"><label for="surface-banana"><canvas class="thumb" data-surface="banana" aria-hidden="true"></canvas><span>Banana valley</span></label>
+    <input type="radio" name="surface" id="surface-bowl" value="bowl" checked><label for="surface-bowl"><svg class="thumb" data-surface="bowl" viewBox="0 0 64 40" preserveAspectRatio="none" aria-hidden="true"></svg><span>Ill-conditioned bowl</span></label>
+    <input type="radio" name="surface" id="surface-rotated" value="rotated"><label for="surface-rotated"><svg class="thumb" data-surface="rotated" viewBox="0 0 64 40" preserveAspectRatio="none" aria-hidden="true"></svg><span>Rotated bowl</span></label>
+    <input type="radio" name="surface" id="surface-scales" value="scales"><label for="surface-scales"><svg class="thumb" data-surface="scales" viewBox="0 0 64 40" preserveAspectRatio="none" aria-hidden="true"></svg><span>Gradients of very different sizes</span></label>
+    <input type="radio" name="surface" id="surface-banana" value="banana"><label for="surface-banana"><svg class="thumb" data-surface="banana" viewBox="0 0 64 40" preserveAspectRatio="none" aria-hidden="true"></svg><span>Banana valley</span></label>
   </fieldset>
 
   <section class="settings" aria-label="Run settings">
@@ -568,14 +562,29 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
         <span class="formula math" id="formula"></span>
       </div>
       <div class="plot" id="contour-wrap">
-        <canvas id="contour-canvas" aria-hidden="true"></canvas>
         <svg id="contour-svg" tabindex="0" role="img" aria-label="Contour plot of the loss with each optimizer's path. Click, tap or use the arrow keys to move the start point.">
-          <g id="c-base"></g><g id="c-paths"></g><g id="c-hl"></g>
+          <defs>
+          <clipPath id="clip-c"><rect id="clip-c-rect" /></clipPath>
+          <!-- the start handle, #pointerThingy from the article's index.html (CC BY 4.0) -->
+          <g id="pointerThingy">
+          <circle style="fill: none; stroke: var(--handle)" stroke-linecap="round" cx="0" cy="0" r="14"/>
+          <circle style="fill: var(--handle)" cx="0" cy="0" r="11"/>
+          <path style="fill: var(--handle-ink)" d="M-3.2-1.3c0-0.1,0-0.2,0-0.3c0-0.1,0-0.2,0-0.3c-0.6,0-1.2,0-1.8,0c0,0.6,0,1.2,0,1.8 c0.2,0,0.4,0,0.6,0c0-0.4,0-0.8,0-1.2c0,0,0.1,0,0.1,0c0.3,0,0.5,0,0.8,0C-3.4-1.3-3.3-1.3-3.2-1.3c0,0.2,0,0.4,0,0.6 c0.2,0,0.4,0,0.6,0c0,0.2,0,0.4,0,0.6c0.2,0,0.4,0,0.6,0c0,0,0,0,0-0.1c0-1.6,0-3.2,0-4.8c0-0.6,0-1.2,0-1.8c0,0,0,0,0.1,0 c0.3,0,0.7,0,1,0c0.1,0,0.1,0,0.2,0c0-0.2,0-0.4,0-0.6c-0.4,0-0.8,0-1.2,0C-2-7.2-2-7-2-6.8c0,0,0,0-0.1,0c-0.2,0-0.3,0-0.5,0 c0,0,0,0-0.1,0c0,1.8,0,3.6,0,5.5c-0.2,0-0.3,0-0.4,0C-3.1-1.3-3.2-1.3-3.2-1.3z M1.1-3.7C1-3.8,1-3.8,1.1-3.7C1-4,1-4.1,1-4.3 c0,0,0,0,0-0.1c-0.4,0-0.8,0-1.2,0c0-0.8,0-1.6,0-2.4c-0.2,0-0.4,0-0.6,0c0,1.8,0,3.6,0,5.5c0.2,0,0.4,0,0.6,0c0-0.8,0-1.6,0-2.4 c0,0,0.1,0,0.1,0C0.3-3.7,0.6-3.7,1.1-3.7C1-3.7,1-3.7,1.1-3.7C1.1-3.7,1-3.7,1.1-3.7c0,0.8,0,1.6,0,2.3c0,0,0,0.1,0,0.1 c0.2,0,0.4,0,0.6,0c0-0.6,0-1.2,0-1.8c0.4,0,0.8,0,1.2,0c0,0.8,0,1.6,0,2.4c0.2,0,0.4,0,0.6,0c0-0.6,0-1.2,0-1.8c0.2,0,0.4,0,0.6,0 c0,0,0,0,0,0.1c0,0.1,0,0.3,0,0.4c0,0,0,0.1,0,0.1c0.2,0,0.4,0,0.5,0c0,0,0.1,0,0.1,0.1c0,0.2,0,0.5,0,0.7c0,1.1,0,2.3,0,3.4 c0,0,0,0,0,0.1c-0.2,0-0.4,0-0.6,0c0,0,0,0,0,0c0,0.6,0,1.1,0,1.7c0,0,0,0,0,0.1c-0.2,0-0.4,0-0.6,0c0,0.4,0,0.8,0,1.2 c-1.6,0-3.2,0-4.9,0c0-0.4,0-0.8,0-1.2c-0.2,0-0.4,0-0.6,0C-2,3.8-2,3.4-2,3c-0.2,0-0.4,0-0.6,0c0,0.4,0,0.8,0,1.2 c0.2,0,0.4,0,0.6,0C-2,4.8-2,5.4-2,6c2,0,4.1,0,6.1,0c0-0.1,0-0.2,0-0.3c0-0.5,0-0.9,0-1.4c0-0.1,0-0.1,0-0.2c0.2,0,0.4,0,0.5,0 c0.1,0,0.1,0,0.1-0.1c0-0.4,0-0.9,0-1.3c0-0.1,0-0.3,0-0.4c0.1,0,0.2,0,0.3,0c0.1,0,0.2,0,0.3,0c0-1.4,0-2.8,0-4.3 c-0.2,0-0.4,0-0.6,0c0-0.2,0-0.4,0-0.6c-0.2,0-0.4,0-0.6,0c0-0.2,0-0.4,0-0.6c-0.4,0-0.8,0-1.2,0c0-0.2,0-0.4,0-0.6 c-0.1,0-0.2,0-0.3,0c-0.4,0-0.9,0-1.3,0C1.2-3.7,1.1-3.7,1.1-3.7z M-3.2,1.8c0,0.4,0,0.8,0,1.2c0.2,0,0.4,0,0.5,0 c0.1,0,0.1,0,0.1-0.1c0-0.3,0-0.6,0-1c0-0.1,0-0.1,0-0.2C-2.8,1.8-3,1.8-3.2,1.8c0-0.4,0-0.8,0-1.2c-0.2,0-0.4,0-0.6,0 c0-0.2,0-0.4,0-0.6c-0.2,0-0.4,0-0.6,0c0,0.2,0,0.4,0,0.6c0.2,0,0.4,0,0.6,0c0,0,0,0,0,0.1c0,0.1,0,0.3,0,0.4c0,0.2,0,0.5,0,0.7 c0,0,0,0.1,0.1,0.1c0.1,0,0.2,0,0.3,0C-3.4,1.8-3.3,1.8-3.2,1.8z"/>
+          <path style="fill: var(--handle-ink)" d="M4.1,4.2C4.1,4.2,4.1,4.2,4.1,4.2c0-0.6,0-1.2,0-1.8c0,0,0,0,0,0c0.2,0,0.4,0,0.6,0 c0,0,0-0.1,0-0.1c0-1.1,0-2.3,0-3.4c0-0.2,0-0.5,0-0.7c0,0,0-0.1-0.1-0.1c-0.2,0-0.4,0-0.5,0c0,0,0-0.1,0-0.1c0-0.1,0-0.3,0-0.4 c0,0,0-0.1,0-0.1c-0.2,0-0.4,0-0.6,0c0,0.6,0,1.2,0,1.8c-0.2,0-0.4,0-0.6,0c0-0.8,0-1.6,0-2.4c-0.4,0-0.8,0-1.2,0 c0,0.6,0,1.2,0,1.8c-0.2,0-0.4,0-0.6,0c0,0,0-0.1,0-0.1c0-0.7,0-1.5,0-2.2c0,0,0-0.1,0-0.1l0,0c0.1,0,0.2,0,0.2,0 c0.4,0,0.9,0,1.3,0c0.1,0,0.2,0,0.3,0c0,0.2,0,0.4,0,0.6c0.4,0,0.8,0,1.2,0c0,0.2,0,0.4,0,0.6c0.2,0,0.4,0,0.6,0c0,0.2,0,0.4,0,0.6 c0.2,0,0.4,0,0.6,0c0,1.4,0,2.8,0,4.3c-0.1,0-0.2,0-0.3,0c-0.1,0-0.2,0-0.3,0c0,0.1,0,0.3,0,0.4c0,0.4,0,0.9,0,1.3 c0,0.1,0,0.1-0.1,0.1C4.5,4.2,4.3,4.2,4.1,4.2L4.1,4.2z"/>
+          <path style="fill: var(--handle-ink)" d="M4.1,4.2c0,0.1,0,0.1,0,0.2c0,0.5,0,0.9,0,1.4c0,0.1,0,0.2,0,0.3C2.1,6,0,6-2,6 c0-0.6,0-1.2,0-1.8c-0.2,0-0.4,0-0.6,0c0-0.4,0-0.8,0-1.2C-2.4,3-2.2,3-2,3c0,0.4,0,0.8,0,1.2c0.2,0,0.4,0,0.6,0c0,0.4,0,0.8,0,1.2 c1.6,0,3.2,0,4.9,0c0-0.4,0-0.8,0-1.2C3.7,4.2,3.9,4.2,4.1,4.2L4.1,4.2z"/>
+          <path style="fill: var(--handle-ink)" d="M-2-6.8c0,0.6,0,1.2,0,1.8c0,1.6,0,3.2,0,4.8c0,0,0,0,0,0.1c-0.2,0-0.4,0-0.6,0 c0-0.2,0-0.4,0-0.6c-0.2,0-0.4,0-0.6,0c0-0.2,0-0.4,0-0.6l0,0c0.1,0,0.1,0,0.2,0c0.1,0,0.3,0,0.4,0c0-1.8,0-3.6,0-5.5 c0,0,0.1,0,0.1,0C-2.4-6.8-2.2-6.8-2-6.8C-2.1-6.8-2-6.8-2-6.8L-2-6.8z"/>
+          <path style="fill: var(--handle-ink)" d="M1.1-3.7C1-3.7,1-3.7,1.1-3.7c-0.4,0-0.8,0-1.2,0c0,0,0,0-0.1,0c0,0.8,0,1.6,0,2.4 c-0.2,0-0.4,0-0.6,0c0-1.8,0-3.6,0-5.5c0.2,0,0.4,0,0.6,0c0,0.8,0,1.6,0,2.4c0.4,0,0.8,0,1.2,0c0,0,0,0.1,0,0.1C1-4.1,1-4,1.1-3.7 C1-3.8,1-3.8,1.1-3.7L1.1-3.7z"/>
+          <path style="fill: var(--handle-ink)" d="M-3.2,1.8c-0.1,0-0.2,0-0.3,0c-0.1,0-0.2,0-0.3,0c0,0-0.1,0-0.1-0.1c0-0.2,0-0.5,0-0.7 c0-0.1,0-0.3,0-0.4c0,0,0,0,0-0.1c-0.2,0-0.4,0-0.6,0c0-0.2,0-0.4,0-0.6c0.2,0,0.4,0,0.6,0c0,0.2,0,0.4,0,0.6c0.2,0,0.4,0,0.6,0 C-3.2,0.9-3.2,1.3-3.2,1.8c0.2,0,0.4,0,0.6,0c0,0.1,0,0.1,0,0.2c0,0.3,0,0.6,0,1C-2.6,3-2.7,3-2.7,3c-0.2,0-0.3,0-0.5,0 C-3.2,2.6-3.2,2.2-3.2,1.8z"/>
+          <path style="fill: var(--handle-ink)" d="M-3.2-1.3c-0.1,0-0.2,0-0.3,0c-0.3,0-0.5,0-0.8,0c0,0,0,0-0.1,0c0,0.4,0,0.8,0,1.2 c-0.2,0-0.4,0-0.6,0c0-0.6,0-1.2,0-1.8c0.6,0,1.2,0,1.8,0c0,0.1,0,0.2,0,0.3C-3.2-1.5-3.2-1.4-3.2-1.3L-3.2-1.3z"/>
+          <path style="fill: var(--handle-ink)" d="M-2-6.8C-2-7-2-7.2-2-7.4c0.4,0,0.8,0,1.2,0c0,0.2,0,0.4,0,0.6c-0.1,0-0.1,0-0.2,0 C-1.3-6.8-1.6-6.8-2-6.8C-2-6.8-2-6.8-2-6.8L-2-6.8z"/>
+          </g>
+          </defs>
+          <g clip-path="url(#clip-c)"><g id="c-field" class="field"></g></g><g id="c-base"></g><g id="c-paths"></g><g id="c-hl"></g>
         </svg>
       </div>
       <p class="caption">
-        <span class="key"><svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden="true"><circle r="6.2" fill="var(--handle)" /><path d="M0 -4L1.4 -2.4H0.5V-0.5H2.4V-1.4L4 0L2.4 1.4V0.5H0.5V2.4H1.4L0 4L-1.4 2.4H-0.5V0.5H-2.4V1.4L-4 0L-2.4 -1.4V-0.5H-0.5V-2.4H-1.4Z" fill="var(--handle-ink)" /></svg>start: drag it, or click or tap the plot to move it</span>
-        <span class="key"><svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden="true"><circle r="5" class="min-ring" /></svg>minimum</span>
+        <span class="key"><svg width="16" height="16" viewBox="-15 -15 30 30" aria-hidden="true"><use href="#pointerThingy" /></svg>start: drag it, or click or tap the plot to move it</span>
+        <span class="key"><svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><circle r="7" class="opt-ring" /></svg>minimum</span>
         <span class="key">shading: loss on a log scale, each band &times;2</span>
         <span class="readout" id="readout"></span>
       </p>
@@ -605,6 +614,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
   </section>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js" integrity="sha512-RJJ1NNC88QhN7dwpCY8rm/6OxI+YdQP48DrLGe/eSAd+n+s1PXwQkkpzzAgoJe4cZFW2GALQoxox61gSY2yQfg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function () {
   'use strict';
@@ -962,7 +972,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
   }
 
   // ---------------------------------------------------------------- layout
-  const cWrap = $('contour-wrap'), cSvg = $('contour-svg'), canvas = $('contour-canvas');
+  const cWrap = $('contour-wrap'), cSvg = $('contour-svg');
   const lWrap = $('loss-wrap'), lSvg = $('loss-svg'), tip = $('tooltip');
   const CM = { l: 34, r: 1, t: 1, b: 30 };
   const LM = { l: 44, r: 14, t: 1, b: 30 };
@@ -984,8 +994,9 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
       Y: (y) => CM.t + (y1 - y) / (y1 - y0) * ph,
       ix: (px) => x0 + (px - CM.l) / pw * (x1 - x0),
       iy: (py) => y1 - (py - CM.t) / ph * (y1 - y0) };
-    canvas.style.left = CM.l + 'px'; canvas.style.top = CM.t + 'px';
-    canvas.style.width = pw + 'px'; canvas.style.height = ph + 'px';
+    const cr = $('clip-c-rect');
+    cr.setAttribute('x', CM.l); cr.setAttribute('y', CM.t); cr.setAttribute('width', pw); cr.setAttribute('height', ph);
+    $('c-field').setAttribute('transform', 'translate(' + CM.l + ' ' + CM.t + ')');
 
     const LW = Math.max(200, lWrap.clientWidth);
     const LH = sideBySide.matches ? H : Math.round(Math.min(340, Math.max(220, LW * 0.66)));
@@ -997,117 +1008,474 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
 
   // ---------------------------------------------------------------- theme colors
   function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-  function hexRGB(h) {
-    h = h.replace('#', '');
-    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-    const n = parseInt(h, 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
   function palette() {
-    return { hi: cssVar('--cm-hi'), mid: cssVar('--cm-mid'), lo: cssVar('--cm-lo'), line: cssVar('--cm-line'), alpha: cssVar('--cm-line-alpha') };
+    return { c0: cssVar('--cm-0'), c1: cssVar('--cm-1'), c2: cssVar('--cm-2') };
   }
 
-  // ---------------------------------------------------------------- contour field (canvas)
-  // Filled bands at powers of two of the loss (band = floor(log2 L)), shaded like the article's figures:
-  // pale where the loss is high, slate where it is low. Band edges and the isolines on them are
-  // antialiased analytically: the distance to the nearest level, in device pixels, is the offset of
-  // log2 L from that level divided by the local gradient of log2 L.
-  const NB = 17;
-  function paintField(ctx, S, k, W, H, pal, lineW, lineEvery) {
-    const [x0, x1, y0, y1] = S.dom;
-    let top = -Infinity;
-    for (let i = 0; i <= 40; i++) for (let j = 0; j <= 24; j++) {
-      const L = S.f(x0 + (x1 - x0) * i / 40, y0 + (y1 - y0) * j / 24, k);
-      if (L > 0) top = Math.max(top, Math.log2(L));
-    }
-    const topBand = Math.floor(top);
-    const lowBand = topBand - NB + 1;
-    const cHi = hexRGB(pal.hi), cMid = hexRGB(pal.mid), cLo = hexRGB(pal.lo), cLn = hexRGB(pal.line);
-    const la = Math.max(0, Math.min(1, parseFloat(pal.alpha) || 0.2));
-    const band = [];
-    for (let b = 0; b < NB; b++) {
-      const t = b / (NB - 1);            // 0 = lowest loss
-      const K = 0.8;                      // the mid tone sits at 80% of the bands, so the wide outer bands keep some tone
-      const u = t < K ? t / K : (t - K) / (1 - K);
-      const A = t < K ? cLo : cMid, B = t < K ? cMid : cHi;
-      const e = t < K ? Math.pow(u, 0.9) : u;
-      band.push([0, 1, 2].map((i) => A[i] + (B[i] - A[i]) * e));
-    }
-    const V = new Float32Array(W * H);
-    for (let py = 0; py < H; py++) {
-      const y = y1 - (py + 0.5) / H * (y1 - y0);
-      const row = py * W;
-      for (let px = 0; px < W; px++) {
-        const L = S.f(x0 + (px + 0.5) / W * (x1 - x0), y, k);
-        V[row + px] = L > 0 ? Math.log2(L) - lowBand : -64;
+  // ---------------------------------------------------------------- d3
+  // d3 v4 (loaded above from cdnjs) supplies the scales and the closed line generator the article's contour
+  // code draws with. If it could not load, these few lines stand in for the parts of it used here.
+  const D3 = window.d3 || (function () {
+    const parse = (c) => {
+      c = String(c).trim();
+      if (c[0] === '#') {
+        let h = c.slice(1);
+        if (h.length === 3) h = h.split('').map((x) => x + x).join('');
+        const n = parseInt(h, 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
       }
+      const m = c.match(/[\d.]+/g);
+      return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+    };
+    const piece = (v, d) => { let i = 1; while (i < d.length - 1 && v > d[i]) i++; return [i, (v - d[i - 1]) / (d[i] - d[i - 1])]; };
+    function scaleLinear() {
+      let dom = [0, 1], ran = [0, 1];
+      function scale(v) {
+        const [i, t] = piece(v, dom), a = ran[i - 1], b = ran[i];
+        if (typeof a === 'number') return a + (b - a) * t;
+        const A = parse(a), B = parse(b);
+        return 'rgb(' + A.map((x, j) => Math.max(0, Math.min(255, Math.round(x + (B[j] - x) * t)))).join(', ') + ')';
+      }
+      scale.domain = (d) => (d ? ((dom = d.slice()), scale) : dom.slice());
+      scale.range = (r) => (r ? ((ran = r.slice()), scale) : ran.slice());
+      scale.invert = (v) => { const [i, t] = piece(v, ran); return dom[i - 1] + (dom[i] - dom[i - 1]) * t; };
+      return scale;
     }
-    const img = ctx.createImageData(W, H);
-    const d = img.data;
-    const hw = lineW / 2;
-    for (let py = 0; py < H; py++) {
-      for (let px = 0; px < W; px++) {
-        const p = py * W + px;
-        const v = V[p];
-        let b = Math.floor(v);
-        if (b < 0) b = 0; else if (b > NB - 1) b = NB - 1;
-        let c = band[b];
-        let r = c[0], g = c[1], bl = c[2];
-        const n = Math.round(v);
-        if (n >= 1 && n <= NB - 1) {
-          const xl = px > 0 ? V[p - 1] : v, xr = px < W - 1 ? V[p + 1] : v;
-          const yu = py > 0 ? V[p - W] : v, yd = py < H - 1 ? V[p + W] : v;
-          const gx = (xr - xl) / (px > 0 && px < W - 1 ? 2 : 1);
-          const gy = (yd - yu) / (py > 0 && py < H - 1 ? 2 : 1);
-          const gm = Math.sqrt(gx * gx + gy * gy) + 1e-9;
-          const sd = (v - n) / gm;
-          if (sd > -1 && sd < 1) {
-            const t = Math.min(1, Math.max(0, sd + 0.5));
-            const lo = band[n - 1], hi = band[n];
-            r = lo[0] + (hi[0] - lo[0]) * t; g = lo[1] + (hi[1] - lo[1]) * t; bl = lo[2] + (hi[2] - lo[2]) * t;
-            if (n % lineEvery === 0) {
-              const a = la * Math.min(1, Math.max(0, hw + 0.5 - Math.abs(sd)));
-              r += (cLn[0] - r) * a; g += (cLn[1] - g) * a; bl += (cLn[2] - bl) * a;
-            }
+    function line() {
+      let fx = (d) => d[0], fy = (d) => d[1], closed = false, defined = () => true;
+      function gen(data) {
+        let out = '', pen = false;
+        data.forEach((d, i) => {
+          if (!defined(d, i, data)) { if (pen && closed) out += 'Z'; pen = false; return; }
+          out += (pen ? 'L' : 'M') + fx(d, i, data) + ',' + fy(d, i, data);
+          pen = true;
+        });
+        if (pen && closed) out += 'Z';
+        return out || null;
+      }
+      gen.x = (f) => ((fx = f), gen);
+      gen.y = (f) => ((fy = f), gen);
+      gen.curve = (c) => ((closed = c === 'closed'), gen);
+      gen.defined = (f) => ((defined = f), gen);
+      return gen;
+    }
+    return { scaleLinear, line, curveLinearClosed: 'closed' };
+  })();
+
+  // ---------------------------------------------------------------- contour field
+  // From the article's assets/lib/contour_plot.js (version 0.0.1), as written, except the lines marked
+  // "guard": they keep the boundary walk from running on forever when a level set is too thin to contain the
+  // minimum's own grid point, which happens at large κ on a small plot.
+
+  /** finds the zeros of a function, given two starting points (which must
+   * have opposite signs */
+  function bisect(f, a, b, parameters) {
+      parameters = parameters || {};
+      var maxIterations = parameters.maxIterations || 100,
+          tolerance = parameters.tolerance || 1e-10,
+          fA = f(a),
+          fB = f(b),
+          delta = b - a;
+
+      if (fA * fB > 0) {
+          throw "Initial bisect points must have opposite signs";
+      }
+
+      if (fA === 0) return a;
+      if (fB === 0) return b;
+
+      for (var i = 0; i < maxIterations; ++i) {
+          delta /= 2;
+          var mid = a + delta,
+              fMid = f(mid);
+
+          if (fMid * fA >= 0) {
+              a = mid;
           }
-        }
-        const o = p * 4;
-        d[o] = r; d[o + 1] = g; d[o + 2] = bl; d[o + 3] = 255;
+
+          if ((Math.abs(delta) < tolerance) || (fMid === 0)) {
+              return mid;
+          }
       }
-    }
-    ctx.putImageData(img, 0, 0);
+      return a + delta;
   }
 
-  // While κ is being dragged the field is painted at one pixel per CSS pixel, then refined to full
-  // density once the slider rests, so the drag stays at frame rate.
-  let canvasKey = '', fastField = false, refineTimer = 0;
-  function drawCanvas() {
-    const S = surf(), G = group(), k = G.kappa;
-    const full = Math.min(2, window.devicePixelRatio || 1);
-    const dpr = fastField ? Math.min(1, full) : full;
-    const W = Math.max(1, Math.round(cg.pw * dpr)), H = Math.max(1, Math.round(cg.ph * dpr));
+  // This file is modified from the d3.geom.contour
+  // plugin found here https://github.com/d3/d3-plugins/tree/master/geom/contour
+
+  /*
+  Copyright (c) 2012-2015, Michael Bostock
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  * Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+  * The name Michael Bostock may not be used to endorse or promote products
+    derived from this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL MICHAEL BOSTOCK BE LIABLE FOR ANY DIRECT,
+  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+
+  function d3_contour(grid, start) {
+    var s = start || d3_geom_contourStart(grid), // starting point
+        c = [],    // contour polygon
+        x = s[0],  // current x position
+        y = s[1],  // current y position
+        dx = 0,    // next x direction
+        dy = 0,    // next y direction
+        pdx = NaN, // previous x direction
+        pdy = NaN, // previous y direction
+        i = 0;
+
+    var guard = 0; // guard
+    do {
+      // determine marching squares index
+      i = 0;
+      if (grid(x-1, y-1)) i += 1;
+      if (grid(x,   y-1)) i += 2;
+      if (grid(x-1, y  )) i += 4;
+      if (grid(x,   y  )) i += 8;
+
+      // determine next direction
+      if (i === 6) {
+        dx = pdy === -1 ? -1 : 1;
+        dy = 0;
+      } else if (i === 9) {
+        dx = 0;
+        dy = pdx === 1 ? -1 : 1;
+      } else {
+        dx = d3_geom_contourDx[i];
+        dy = d3_geom_contourDy[i];
+      }
+
+      // update contour polygon
+      if (dx != pdx && dy != pdy) {
+        c.push([x, y]);
+        pdx = dx;
+        pdy = dy;
+      } else {
+        c.push([x, y]);
+      }
+
+      x += dx;
+      y += dy;
+    } while ((s[0] != x || s[1] != y) && ++guard < 4000000); // guard
+
+    return c;
+  }
+
+  // lookup tables for marching directions
+  var d3_geom_contourDx = [1, 0, 1, 1,-1, 0,-1, 1,0, 0,0,0,-1, 0,-1,NaN];
+  var d3_geom_contourDy = [0,-1, 0, 0, 0,-1, 0, 0,1,-1,1,1, 0,-1, 0,NaN];
+  function d3_geom_contourStart(grid) {
+    var x = 0,
+        y = 0;
+
+    // search for a starting point; begin at origin
+    // and proceed along outward-expanding diagonals
+    while (true) {
+      if (grid(x,y)) {
+        return [x,y];
+      }
+      if (x === 0) {
+        x = y + 1;
+        y = 0;
+      } else {
+        x = x - 1;
+        y = y + 1;
+      }
+    }
+  }
+
+  function isoline(f, value, xScale, yScale) {
+      var xRange = xScale.range(), yRange = yScale.range();
+      return function(x, y) {
+          if ((x < xRange[0]) || (x > xRange[1]) ||
+              (y < yRange[0]) || (y > yRange[1])) return false;
+          return f(xScale.invert(x), yScale.invert(y)) < value;
+      };
+  }
+
+  function smoothPoints(f, points, level, xScale, yScale) {
+      var xRange = xScale.range(), yRange = yScale.range();
+      var ySmooth = function(y) {
+          return f(xScale.invert(x), yScale.invert(y)) - level;
+      };
+      var xSmooth = function(x) {
+          return f(xScale.invert(x), yScale.invert(y)) - level;
+      };
+      for (var k = 0; k < points.length; ++k) {
+          var point = points[k],
+              x = point[0], y = point[1];
+
+          if ((x <= xRange[0]) || (x >= xRange[1]) ||
+              (y <= yRange[0]) || (y >= yRange[1])) continue;
+
+          var currentSmooth = ySmooth(y);
+
+          var p = {'maxIterations' : 9};
+          for (var delta = 0.5; delta <= 3; delta += 0.5) {
+              if (ySmooth(y - delta) * currentSmooth < 0) {
+                  y = bisect(ySmooth, y, y - delta, p);
+              } else if (xSmooth(x - delta) * currentSmooth < 0) {
+                  x = bisect(xSmooth, x, x - delta, p);
+              } else if (ySmooth(y + delta) * currentSmooth < 0) {
+                  y = bisect(ySmooth, y, y + delta, p);
+              } else if (xSmooth(x + delta) * currentSmooth < 0) {
+                  x = bisect(xSmooth, x, x + delta, p);
+              } else {
+                  continue;
+              }
+              break;
+          }
+
+          point[0] = x;
+          point[1] = y;
+      }
+  }
+
+  function getLogLevels(f, xScale, yScale, count) {
+      var xRange = xScale.range(), yRange = yScale.range();
+
+      // figure out min/max values by sampling pointson a grid
+      var maxValue, minValue, value;
+      maxValue = minValue = f(xScale.invert(xRange[0]), yScale.invert(yRange[0]));
+      for (var y = yRange[0]; y < yRange[1]+1; ++y) {
+          for (var x = xRange[0]; x < xRange[1]+1; ++x) {
+              value = f(xScale.invert(x),yScale.invert(y));
+              minValue = Math.min(value, minValue);
+              maxValue = Math.max(value, maxValue);
+          }
+      }
+
+      // lets get contour lines on a log scale, keeping
+      // values on an integer scale (if possible)
+      var levels = [];
+      var logRange = Math.log(maxValue - Math.floor(minValue));
+      var base = Math.ceil(Math.exp(logRange / (count))),
+                 upper = Math.pow(base, Math.ceil(logRange / Math.log(base)));
+
+      for (var i = 0; i < count; ++i) {
+          var current = Math.floor(minValue) + upper;
+          if (current < minValue) {
+              break;
+          }
+          levels.push(current);
+          upper /= base;
+      }
+
+      return levels;
+  }
+
+  function getStartingPoint(lineFunc, x, y) {
+      x = Math.floor(x);
+      y = Math.floor(y);
+      if (!lineFunc(x, y)) { var o = [[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,-1],[1,-1],[-1,1]].filter(function(d) { return lineFunc(x + d[0], y + d[1]); })[0]; if (!o) return null; x += o[0]; y += o[1]; } // guard
+      var j = 0;
+      while (true) {
+          j += 1;
+          if (!lineFunc(x+j, y)) {
+              return [x+j, y];
+          }
+          if (!lineFunc(x, y+j)) {
+              return [x, y+j];
+          }
+      }
+  }
+
+  function getContours(f, xScale, yScale, count, minima) {
+      // figure out even distribution in log space of values
+      var levels = getLogLevels(f, xScale, yScale, count);
+
+      // use marching squares algo from d3.geom.contour to build up a series of paths
+      var ret = [];
+      for (var i = 0; i < levels.length; ++i) {
+          var level = levels[i];
+          var lineFunc = isoline(f, level, xScale, yScale);
+
+          var points= [];
+          if (minima) {
+              var initialPoints = [];
+              for (var m = 0; m < minima.length; ++m) {
+                  var initial = getStartingPoint(lineFunc, xScale(minima[m].x), yScale(minima[m].y));
+                  if (!initial) continue; // guard
+                  var current = d3_contour(lineFunc, initial);
+
+                    // don't add points if already seen
+                    var duplicate = false;
+                    for (var j = 0 ; j < current.length; ++j) {
+                       var point = current[j];
+                       for (var k = 0; k < initialPoints.length; ++k) {
+                          var other = initialPoints[k];
+                          if ((point[0] == other[0]) &&
+                              (point[1] == other[1])) {
+                              duplicate = true;
+                              break;
+                          }
+                       }
+                       if (duplicate) break;
+                    }
+                    if (duplicate) continue;
+
+                    initialPoints.push(initial);
+
+                    smoothPoints(f, current, level, xScale, yScale);
+                    if (points.length) points.push(null);
+                    points = points.concat(current);
+              }
+          } else {
+              points = d3_contour(lineFunc);
+              smoothPoints(f, points, level, xScale, yScale);
+
+          }
+
+          ret.push(points);
+      }
+
+      // return the contours
+      return {'paths': ret, 'levels': levels};
+  }
+
+  // From the article's assets/utils.js: the leader from a ring to its label. Only change: the commas that
+  // turn its assignments into one declaration, which strict mode needs.
+  function ringPathGen(radius, width, height) {
+
+    var padding = 4
+
+    function ringPath(p1, p2) {
+
+      // Generate Paths
+      var x = -(p1[0] - p2[0]),
+          y = -(p1[1] - p2[1]),
+          xSign = (x > 0) - (x < 0),
+          ySign = (y > 0) - (y < 0),
+          r = radius,
+          d = "",
+          a = Math.sqrt(r * r / 2),
+          b = Math.sqrt(r * r - Math.min(y * y, x * x)),
+          c = Math.sqrt(2 * Math.min(x * x, y * y)),
+          dir = ""
+      if (x * x + y * y < r * r) {
+        d = "";
+      } else if (c < r) {
+        if (Math.abs(x) > Math.abs(y)) {
+          dir = xSign > 0 ? "E" : "W"
+          d = "M" + (p1[0] + xSign * b) + "," + (p1[1] + y)
+            + ",L" + (p1[0] + x) + "," + (p1[1] + y)
+        } else {
+          dir = ySign > 0 ? "S" : "N"
+          d = "M" + (p1[0] + x) + "," + (p1[1] + ySign * b)
+           + ",L" + (p1[0] + x) + "," + (p1[1] + y)
+        }
+      } else if (Math.abs(x) > Math.abs(y)){
+        dir = xSign > 0 ? "E" : "W"
+        d = "M"  + (p1[0] + xSign * a)           + "," + (p1[1] + ySign * a) +
+            ",L" + (p1[0] + xSign * Math.abs(y)) + "," + (p1[1] + y) +
+            "L"  + (p1[0] + x)                   + "," + (p1[1] + y);
+      } else {
+        dir = ySign > 0 ? "S" : "N"
+        d = "M"  + (p1[0] + xSign * a) + "," + (p1[1] + ySign * a) +
+            ",L" + (p1[0] + x)         + "," + (p1[1] + ySign * Math.abs(x)) +
+            "L"  + (p1[0] + x)         + "," + (p1[1] + y);
+      }
+
+      var top = 0
+      var left = 0
+
+      // Generate Paths
+      // if (dir == "S") { top  = (p2[1] + padding); left = (p2[0] - width/2) }
+      // if (dir == "N") { top  = (p2[1] - height - padding); left = (p2[0] - width/2) }
+      // if (dir == "W") { top  = (p2[1] - height/2); left = (p2[0] - width - padding) }
+      // if (dir == "E") { top  = (p2[1] - height/2); left = (p2[0] + padding) }
+
+      if (dir == "S") { top  = (p2[1] + height/2 + padding); left = (p2[0] - width/2) }
+      if (dir == "N") { top  = (p2[1] - padding); left = (p2[0] - width/2) }
+      if (dir == "W") { top  = (p2[1] + height/4); left = (p2[0] - width - padding) }
+      if (dir == "E") { top  = (p2[1] + height/4); left = (p2[0] + padding) }
+
+      return {d:d, label:[left, top]}
+
+    }
+
+    return ringPath
+
+  }
+
+  // Drawn as the article's ContourPlot draws it: one closed path per level, the largest first, filled from
+  // colourScale (domain [1, count/3, count − 1] over rgb(240,244,246), rgb(217,225,232), #aec0ce) and
+  // stroked 0.8 px in #225577 at opacity 0.2. The colours are the --cm-* tokens, so the dark theme gets its own.
+  const CONTOURS = 15;   // num_contours in iterates.js
+  const round2 = (p) => (p ? [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100] : p);
+  function fieldMarkup(S, k, w, h, count) {
+    const [x0, x1, y0, y1] = S.dom;
+    const xScale = D3.scaleLinear().range([0, w]).domain([x0, x1]);
+    const yScale = D3.scaleLinear().range([0, h]).domain([y1, y0]);
+    const contours = getContours((x, y) => S.f(x, y, k), xScale, yScale, count, [{ x: S.min[0], y: S.min[1] }]);
     const pal = palette();
-    const key = [state.surface, S.usesKappa ? k : '', W, H, pal.hi, pal.mid, pal.lo, pal.line, pal.alpha].join('|');
-    if (key === canvasKey) return;
-    canvasKey = key;
-    canvas.width = W; canvas.height = H;
-    paintField(canvas.getContext('2d'), S, k, W, H, pal, 1.1 * dpr, 1);
+    const colourScale = D3.scaleLinear().domain([1, count / 3, count - 1]).range([pal.c0, pal.c1, pal.c2]);
+    const line = D3.line().x((d) => d[0]).y((d) => d[1]).curve(D3.curveLinearClosed).defined((d) => d);
+    let out = '<rect width="' + w + '" height="' + h + '" style="fill:' + colourScale(0) + '" />';
+    contours.paths.forEach((pts, i) => {
+      const d = pts.length ? line(pts.map(round2)) : null;
+      if (d) out += '<path d="' + d + '" style="fill:' + colourScale(i) + '" />';
+    });
+    return out;
+  }
+
+  // While κ is dragged the contours are traced on a grid half as fine and scaled up, then retraced at full
+  // resolution once the slider rests, so the drag keeps up with the pointer.
+  let fieldKey = '', fastField = false, refineTimer = 0;
+  function drawField() {
+    const S = surf(), k = group().kappa;
+    const pal = palette();
+    const sc = fastField ? 2 : 1;
+    const w = Math.max(8, Math.round(cg.pw / sc)), h = Math.max(8, Math.round(cg.ph / sc));
+    const key = [state.surface, S.usesKappa ? k : '', w, h, cg.pw, cg.ph, pal.c0, pal.c1, pal.c2].join('|');
+    if (key === fieldKey) return;
+    fieldKey = key;
+    const g = $('c-field');
+    g.setAttribute('transform', 'translate(' + CM.l + ' ' + CM.t + ')' + (sc === 1 ? '' : ' scale(' + (cg.pw / w) + ' ' + (cg.ph / h) + ')'));
+    g.innerHTML = fieldMarkup(S, k, w, h, CONTOURS);
   }
 
   const thumbKeys = {};
   function drawThumbs() {
     const pal = palette();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    document.querySelectorAll('canvas.thumb').forEach((cv) => {
-      const id = cv.dataset.surface, S = SURFACES[id];
+    document.querySelectorAll('svg.thumb').forEach((sv) => {
+      const id = sv.dataset.surface, S = SURFACES[id];
       const k = state.groups[S.group].kappa;
-      const W = Math.max(1, Math.round(cv.clientWidth * dpr)), H = Math.max(1, Math.round(cv.clientHeight * dpr));
-      const key = [S.usesKappa ? k : '', W, H, pal.hi, pal.mid, pal.lo, pal.line, pal.alpha].join('|');
+      const key = [S.usesKappa ? k : '', pal.c0, pal.c1, pal.c2].join('|');
       if (thumbKeys[id] === key) return;
       thumbKeys[id] = key;
-      cv.width = W; cv.height = H;
-      paintField(cv.getContext('2d'), S, k, W, H, pal, 0.8 * dpr, 2);
+      sv.innerHTML = '<g class="field">' + fieldMarkup(S, k, 64, 40, 12) + '</g>';
     });
+  }
+
+  // label widths for placing the .figtext labels (bold 12px Helvetica in the article)
+  let measureCtx = null;
+  const widthCache = {};
+  function textWidth(t) {
+    const key = t + '|' + (document.fonts ? document.fonts.status : '');
+    if (widthCache[key]) return widthCache[key];
+    measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
+    measureCtx.font = 'bold 12px Helvetica, Arial, "Source Sans 3", sans-serif';
+    return (widthCache[key] = Math.ceil(measureCtx.measureText(t).width));
   }
 
   // ---------------------------------------------------------------- geometry helpers
@@ -1147,15 +1515,11 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
       Object.assign({ o }, runOptimizer(o.id, G.p[o.id], S, G.kappa, start, G.steps, state.sigma, Z)));
   }
 
-  // a move glyph (four arrows) for the start handle, after the article's draggable pointer
-  const MOVE_GLYPH = 'M0 -6L2.1 -3.6H0.8V-0.8H3.6V-2.1L6 0L3.6 2.1V0.8H0.8V3.6H2.1L0 6L-2.1 3.6H-0.8V0.8H-3.6V2.1L-6 0L-3.6 -2.1V-0.8H-0.8V-3.6H-2.1Z';
-
   function renderContourSVG() {
     const S = surf();
     const { W, H, pw, ph, X, Y } = cg;
     const [x0, x1, y0, y1] = S.dom;
-    let s = '<defs><clipPath id="clip-c"><rect x="' + CM.l + '" y="' + CM.t + '" width="' + pw + '" height="' + ph + '" /></clipPath></defs>';
-    s += '<rect class="frame" x="' + (CM.l - 0.5) + '" y="' + (CM.t - 0.5) + '" width="' + (pw + 1) + '" height="' + (ph + 1) + '" />';
+    let s = '<rect class="frame" x="' + (CM.l - 0.5) + '" y="' + (CM.t - 0.5) + '" width="' + (pw + 1) + '" height="' + (ph + 1) + '" />';
     const xt = ticks(x0, x1, Math.max(3, Math.floor(pw / 70)));
     const yt = ticks(y0, y1, Math.max(3, Math.floor(ph / 52)));
     xt.forEach((v) => {
@@ -1172,48 +1536,41 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
     s += '<text class="axis-label" x="2" y="' + (CM.t + 12) + '" text-anchor="start">θ₂</text>';
     $('c-base').innerHTML = s;
 
-    // paths: a soft halo, the line, a dot per iterate and a larger dot where the run ends
+    // Iterates as the article draws them (genIterDiagram in assets/iterates.js, plot2dGen in assets/utils.js):
+    // a path through every iterate, pathWidth wide with round caps, then a dot of circleRadius on each iterate
+    // in the same colour, and a 7 px ring in that colour around the last one (its "Solution" ring). The hero
+    // figure uses pathWidth 1.5 and circleRadius 2 for 150 iterations, its 300-iteration figures 1 and 1.5.
+    // One colour per optimizer; Nesterov is dashed.
     const box = [CM.l - 3, CM.t - 3, CM.l + pw + 3, CM.t + ph + 3];
+    const inBox = (x, y) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3];
     const T = group().steps;
-    const rDot = T > 150 ? 1.45 : T > 80 ? 1.8 : 2.3;
-    const wLine = T > 150 ? 1.3 : 1.6;
+    const pathWidth = T > 150 ? 1 : 1.5, circleRadius = T > 150 ? 1.5 : 2;
     let p = '<g clip-path="url(#clip-c)">';
+    const rings = [];
     runs.forEach((r) => {
       let px = r.xs.map(X), py = r.ys.map(Y);
-      let cutAt = -1;
       if (r.diverged) {
         // a diverging path stops where it first leaves the plot
-        const cut = px.findIndex((v, i) => v < box[0] || v > box[2] || py[i] < box[1] || py[i] > box[3]);
-        if (cut > 0) { px = px.slice(0, cut + 1); py = py.slice(0, cut + 1); cutAt = cut; }
+        const cut = px.findIndex((v, i) => !inBox(v, py[i]));
+        if (cut > 0) { px = px.slice(0, cut + 1); py = py.slice(0, cut + 1); }
       }
-      const d = polylinePath(px, py, box);
       const dash = r.o.dash ? ' stroke-dasharray="' + r.o.dash + '"' : '';
-      p += '<path class="halo" stroke-width="' + (wLine + 3.2) + '" d="' + d + '" />';
-      p += '<path class="trail s-' + r.o.id + '" stroke-width="' + wLine + '"' + dash + ' d="' + d + '" />';
+      p += '<path class="iterates s-' + r.o.id + '" stroke-width="' + pathWidth + '"' + dash + ' d="' + polylinePath(px, py, box) + '" />';
       let dots = '';
-      for (let i = 1; i < px.length; i++) {
-        if (px[i] < box[0] || px[i] > box[2] || py[i] < box[1] || py[i] > box[3]) continue;
-        dots += '<circle cx="' + r2(px[i]) + '" cy="' + r2(py[i]) + '" r="' + rDot + '" />';
+      for (let i = 0; i < px.length; i++) {
+        if (inBox(px[i], py[i])) dots += '<circle cx="' + r2(px[i]) + '" cy="' + r2(py[i]) + '" r="' + circleRadius + '" />';
       }
-      p += '<g class="dots f-' + r.o.id + '">' + dots + '</g>';
+      p += '<g class="f-' + r.o.id + '">' + dots + '</g>';
       const n = px.length - 1;
-      if (cutAt > 0) {
-        // an arrowhead where the path leaves the plot
-        const c = clipSeg(px[n - 1], py[n - 1], px[n], py[n], box[0] + 3, box[1] + 3, box[2] - 3, box[3] - 3);
-        if (c) {
-          const a = Math.atan2(c[3] - c[1], c[2] - c[0]), L = 9, w = 4.5;
-          const bx = c[2] - L * Math.cos(a), by = c[3] - L * Math.sin(a);
-          p += '<path class="exit f-' + r.o.id + '" d="M' + r2(c[2]) + ' ' + r2(c[3]) + 'L' + r2(bx - w * Math.sin(a)) + ' ' + r2(by + w * Math.cos(a)) +
-            'L' + r2(bx + w * Math.sin(a)) + ' ' + r2(by - w * Math.cos(a)) + 'Z" />';
-        }
-      } else if (n > 0 && px[n] >= box[0] && px[n] <= box[2] && py[n] >= box[1] && py[n] <= box[3]) {
-        p += '<circle class="end f-' + r.o.id + '" cx="' + r2(px[n]) + '" cy="' + r2(py[n]) + '" r="' + (rDot + 1.6) + '" />';
+      if (n > 0 && n === r.xs.length - 1 && inBox(px[n], py[n])) {
+        rings.push('<circle class="sol-ring s-' + r.o.id + '" cx="' + r2(px[n]) + '" cy="' + r2(py[n]) + '" r="7" />');
       }
     });
-    p += '</g>';
+    p += rings.join('') + '</g>';
 
-    // Labels go where they cover the fewest iterates: sample every path (points and segment midpoints)
-    // and score each candidate box.
+    // Labels in the article's .figtext: "Starting Point" at translate(20, 3) from the handle, and the optimum's
+    // label at the end of ringPathGen's leader, 15 px above the ring. Where iterates would run through a label,
+    // the next free side is used instead.
     const pts = [];
     runs.forEach((r) => {
       for (let i = 0; i < r.xs.length; i++) {
@@ -1237,32 +1594,28 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
       return best;
     };
 
-    // the minimum: a ring with a short leader and a label, as in the article
+    // the optimum, as in iterates.js: a 7 px ring and ringPathGen(7, width, 14)'s leader in #3f5b75
     const mx = r2(X(S.min[0])), my = r2(Y(S.min[1]));
-    const MW = 58, LH = 13;
-    const mc = pick([
-      { box: [mx - MW / 2, my - 33, mx + MW / 2, my - 20], lead: [mx, my - 6.5, mx, my - 16], tx: mx, ty: my - 21, anchor: 'middle' },
-      { box: [mx - MW / 2, my + 20, mx + MW / 2, my + 33], lead: [mx, my + 6.5, mx, my + 16], tx: mx, ty: my + 30, anchor: 'middle' },
-      { box: [mx + 20, my - LH / 2, mx + 20 + MW, my + LH / 2], lead: [mx + 6.5, my, mx + 16, my], tx: mx + 20, ty: my + 4.5, anchor: 'start' },
-      { box: [mx - 20 - MW, my - LH / 2, mx - 20, my + LH / 2], lead: [mx - 6.5, my, mx - 16, my], tx: mx - 20, ty: my + 4.5, anchor: 'end' },
-    ]);
-    p += '<circle class="min-ring-halo" cx="' + mx + '" cy="' + my + '" r="6" /><circle class="min-ring" cx="' + mx + '" cy="' + my + '" r="6" />';
-    p += '<path class="min-leader" d="M' + mc.lead[0] + ' ' + mc.lead[1] + 'L' + mc.lead[2] + ' ' + mc.lead[3] + '" />';
-    p += '<text class="plot-label" x="' + mc.tx + '" y="' + mc.ty + '" text-anchor="' + mc.anchor + '">Minimum</text>';
+    const OL = 'Minimum', ow = textWidth(OL);
+    const ringPath = ringPathGen(7, ow, 14);
+    const mc = pick([[0, -15], [0, 15], [15, 0], [-15, 0]].map((o) => {
+      const rp = ringPath([mx, my], [mx + o[0], my + o[1]]);
+      return { rp, box: [rp.label[0], rp.label[1] - 11, rp.label[0] + ow, rp.label[1] + 2] };
+    }));
+    p += '<circle class="opt-ring" cx="' + mx + '" cy="' + my + '" r="7" />';
+    p += '<path class="opt-leader" d="' + mc.rp.d.replace(/,L/g, 'L') + '" />';
+    p += '<text class="figtext" transform="translate(' + r2(mc.rp.label[0]) + ',' + r2(mc.rp.label[1]) + ')">' + OL + '</text>';
 
-    // the start handle
+    // the start handle: the article's #pointerThingy at its pointerScale (1 in the hero figure, 0.8 in the
+    // smaller figures), drawn last so it sits on top, with its "Starting Point" label
     const st = state.starts[state.surface];
     const sx = r2(X(st[0])), sy = r2(Y(st[1]));
-    const SW = 34;
-    const sc = pick([
-      { box: [sx - 17 - SW, sy - LH / 2, sx - 17, sy + LH / 2], tx: sx - 17, ty: sy + 4.5, anchor: 'end' },
-      { box: [sx + 17, sy - LH / 2, sx + 17 + SW, sy + LH / 2], tx: sx + 17, ty: sy + 4.5, anchor: 'start' },
-      { box: [sx - SW / 2, sy - 32, sx + SW / 2, sy - 19], tx: sx, ty: sy - 20, anchor: 'middle' },
-      { box: [sx - SW / 2, sy + 19, sx + SW / 2, sy + 32], tx: sx, ty: sy + 29, anchor: 'middle' },
-    ]);
-    p += '<g class="start" transform="translate(' + sx + ' ' + sy + ')"><circle class="start-ring" r="12.5" /><circle class="start-disc" r="9" />' +
-      '<path class="start-glyph" d="' + MOVE_GLYPH + '" /></g>';
-    p += '<text class="plot-label" x="' + r2(sc.tx) + '" y="' + r2(sc.ty) + '" text-anchor="' + sc.anchor + '">Start</text>';
+    const pointerScale = pw < 520 ? 0.8 : 1;
+    const SL = 'Starting Point', sw = textWidth(SL);
+    const sc = pick([[20, 3], [-20 - sw, 3], [-sw / 2, -21], [-sw / 2, 31]].map((t) =>
+      ({ t, box: [sx + t[0], sy + t[1] - 11, sx + t[0] + sw, sy + t[1] + 2] })));
+    p += '<g class="start" transform="translate(' + sx + ',' + sy + ')"><use href="#pointerThingy" transform="scale(' + pointerScale + ')" />' +
+      '<text class="figtext" transform="translate(' + r2(sc.t[0]) + ',' + r2(sc.t[1]) + ')">' + SL + '</text></g>';
     $('c-paths').innerHTML = p;
   }
 
@@ -1413,7 +1766,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
 
   function update() {
     compute();
-    drawCanvas();
+    drawField();
     drawThumbs();
     renderContourSVG();
     renderLoss();
@@ -1422,7 +1775,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
     if (hoverStep !== null) hoverStep = Math.min(hoverStep, group().steps);
     renderHover();
   }
-  function fullRender() { layout(); canvasKey = ''; Object.keys(thumbKeys).forEach((k) => { delete thumbKeys[k]; }); update(); }
+  function fullRender() { layout(); fieldKey = ''; Object.keys(thumbKeys).forEach((k) => { delete thumbKeys[k]; }); update(); }
 
   // Slider and drag input is coalesced to one redraw per animation frame, so dragging stays smooth.
   let pending = 0;
@@ -1441,7 +1794,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(
     syncControls();
     fullRender();
   }));
-  function refineField() { clearTimeout(refineTimer); if (fastField) { fastField = false; drawCanvas(); } }
+  function refineField() { clearTimeout(refineTimer); if (fastField) { fastField = false; drawField(); } }
   $('kappa').addEventListener('input', (e) => {
     group().kappa = +e.target.value; $('kappa-out').textContent = e.target.value;
     fastField = true;
