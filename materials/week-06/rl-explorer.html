@@ -1,0 +1,2341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Reinforcement Learning Explorer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Lecture 6's explorer, in the style of the Week 5 optimizer explorer: a system sans for the interface, a thin
+   control bar above each figure, figures drawn on canvas from theme tokens. Colors keep the notes' meanings:
+   the policy blue, values and the critic orange, rewards green, what goes wrong red, PPO purple.
+   Layout: one column of six sections, each a control bar, a figure row, and a readout. */
+:root {
+  --bg: #ffffff;
+  --ink: #14181d;
+  --ink-2: #434b55;
+  --ink-3: #69717c;
+  --rule: #e6e9ed;
+  --rule-2: #cfd5dc;
+  --track: #e3e7eb;
+  --hover: #f3f5f7;
+  --panel: #f6f8fa;
+  --focus: #1f6fd1;
+  --halo: #ffffff;
+
+  --policy: #2f5fb3;
+  --value: #e0661b;
+  --reward: #2e9e5b;
+  --bad: #d1342f;
+  --ppo: #7b4fa8;
+  --neutral: #5f6b7a;
+  --wall: #c9ced6;
+  --cliff: #b9c0ca;
+
+  --c-greedy: #14181d;
+  --c-eps: #e0661b;
+  --c-ucb: #128a84;
+  --c-ts: #7b4fa8;
+  --c-grad: #2f5fb3;
+  --mc: #2e9e5b;
+  --td: #e0661b;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-fig: Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1116;
+    --ink: #e8ecf1;
+    --ink-2: #b4bdc8;
+    --ink-3: #8992a0;
+    --rule: #1e252d;
+    --rule-2: #313b46;
+    --track: #2a323c;
+    --hover: #151b22;
+    --panel: #121820;
+    --focus: #6aa8ff;
+    --halo: #0d1116;
+    --policy: #5b93f2;
+    --value: #f8862f;
+    --reward: #4cc282;
+    --bad: #f0625c;
+    --ppo: #b48cf0;
+    --neutral: #9aa4b0;
+    --wall: #39434f;
+    --cliff: #2c343e;
+    --c-greedy: #e8ecf1;
+    --c-eps: #f8862f;
+    --c-ucb: #3ec7bf;
+    --c-ts: #b48cf0;
+    --c-grad: #5b93f2;
+    --mc: #4cc282;
+    --td: #f8862f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1116;
+  --ink: #e8ecf1;
+  --ink-2: #b4bdc8;
+  --ink-3: #8992a0;
+  --rule: #1e252d;
+  --rule-2: #313b46;
+  --track: #2a323c;
+  --hover: #151b22;
+  --panel: #121820;
+  --focus: #6aa8ff;
+  --halo: #0d1116;
+  --policy: #5b93f2;
+  --value: #f8862f;
+  --reward: #4cc282;
+  --bad: #f0625c;
+  --ppo: #b48cf0;
+  --neutral: #9aa4b0;
+  --wall: #39434f;
+  --cliff: #2c343e;
+  --c-greedy: #e8ecf1;
+  --c-eps: #f8862f;
+  --c-ucb: #3ec7bf;
+  --c-ts: #b48cf0;
+  --c-grad: #5b93f2;
+  --mc: #4cc282;
+  --td: #f8862f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.page { max-width: 1200px; margin: 0 auto; padding: 34px 16px 64px; }
+
+.masthead { max-width: 76rem; margin-bottom: 18px; }
+.masthead h1 { margin: 0 0 6px; font-size: 32px; line-height: 1.12; font-weight: 700; letter-spacing: -0.015em; text-wrap: balance; }
+.lede { margin: 0 0 6px; font-size: 17px; line-height: 1.5; color: var(--ink-2); max-width: 70ch; }
+.credit { margin: 0; color: var(--ink-3); font-size: 13px; line-height: 1.5; max-width: 90ch; }
+
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 10px 0 12px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: 8px; font-size: 14px; }
+nav.toc a { text-decoration: none; color: var(--ink-2); }
+nav.toc a:hover { color: var(--ink); text-decoration: underline; }
+nav.toc b { font-variant-numeric: tabular-nums; color: var(--ink-3); font-weight: 600; margin-right: 4px; }
+
+section.part { padding-top: 26px; scroll-margin-top: 8px; }
+section.part > h2 { margin: 0 0 4px; font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; text-wrap: balance; }
+section.part > h2 .num { color: var(--ink-3); font-weight: 600; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.intro { margin: 0 0 4px; color: var(--ink-2); max-width: 72ch; }
+.where { margin: 0 0 6px; color: var(--ink-3); font-size: 13px; }
+
+/* control bar */
+.bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 26px; padding: 14px 0 12px; border-top: 1px solid var(--rule); margin-top: 10px; }
+.ctl { flex: 1 1 150px; min-width: 0; max-width: 260px; }
+.ctl.wide { max-width: 320px; flex-basis: 220px; }
+.ctl-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; font-size: 13px; line-height: 20px; }
+.ctl-top label { min-width: 0; }
+.ctl-top label { font-weight: 600; color: var(--ink-2); }
+.val { font-variant-numeric: tabular-nums; color: var(--ink); margin-left: auto; }
+.select-wrap { position: relative; display: flex; align-items: center; height: 34px; border: 1px solid var(--rule-2); border-radius: 4px; background: var(--bg); }
+.select-wrap:hover { border-color: var(--ink-3); }
+.select-wrap:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.select-wrap::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 1.5px solid var(--ink-2); border-bottom: 1.5px solid var(--ink-2); transform: rotate(45deg); pointer-events: none; }
+select { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0 30px 0 9px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+select:focus-visible { outline: none; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+button {
+  font: 600 13px/1 var(--font-ui); color: var(--ink-2); background: transparent;
+  border: 1px solid var(--rule-2); border-radius: 4px; padding: 9px 12px; cursor: pointer;
+  white-space: nowrap; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+button:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); background: var(--hover); }
+button.primary { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+button.primary:hover:not(:disabled) { color: var(--bg); background: var(--ink-2); border-color: var(--ink-2); }
+button:disabled { opacity: 0.45; cursor: default; }
+input[type="range"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--focus); outline-offset: 2px; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--track); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--track); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: var(--ink); border: 2px solid var(--halo); box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2); }
+input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 2px solid var(--halo); }
+.check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); height: 34px; }
+.check input { accent-color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--rule-2); border-radius: 4px; overflow: hidden; height: 34px; }
+.seg button { border: 0; border-radius: 0; height: 100%; padding: 0 11px; }
+.seg button + button { border-left: 1px solid var(--rule-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* figure rows */
+.figrow { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 18px 30px; align-items: start; }
+.figrow.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 820px) { .figrow, .figrow.even { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; min-width: 0; }
+figcaption { font-size: 13px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; max-width: 70ch; }
+figcaption b { color: var(--ink-2); font-weight: 600; }
+.ftitle { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 0 0 4px; }
+canvas { display: block; max-width: 100%; }
+.gridwrap { min-width: 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--ink-3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 600; }
+.readout { margin-top: 10px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; min-height: 3.2em; overflow-x: auto; }
+.readout .eq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--ink-2); margin: 2px 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; background: var(--c); }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 8px); }
+table.summary { border-collapse: collapse; font-size: 13px; margin-top: 10px; font-variant-numeric: tabular-nums; width: 100%; max-width: 720px; }
+table.summary th, table.summary td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--rule); }
+table.summary th:first-child, table.summary td:first-child { text-align: left; }
+table.summary th { font-weight: 600; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: -1px; }
+.footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-3); max-width: 90ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* play mode, the bandit lab */
+.sub { margin: 20px 0 0; font-size: 15px; line-height: 1.3; font-weight: 650; color: var(--ink); }
+.pad { display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(2, 40px); gap: 4px; flex: none; }
+.pad button { padding: 0; font-size: 18px; line-height: 1; }
+.pad .up { grid-column: 2; grid-row: 1; }
+.pad .left { grid-column: 1; grid-row: 2; }
+.pad .down { grid-column: 2; grid-row: 2; }
+.pad .right { grid-column: 3; grid-row: 2; }
+.playrow { display: flex; align-items: center; gap: 10px 16px; margin-top: 10px; }
+.keyhint { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--ink-3); max-width: 34ch; }
+.keyhint.on { color: var(--policy); font-weight: 600; }
+#g-canvas:focus { outline: none; }
+#g-canvas:focus-visible, .gridwrap.playing #g-canvas:focus { outline: 2px solid var(--policy); outline-offset: 2px; }
+input[type="number"] {
+  width: 68px; height: 30px; margin: 0; padding: 0 6px; border: 1px solid var(--rule-2); border-radius: 4px;
+  background: var(--bg); color: var(--ink); font: 13px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+}
+input[type="number"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.armgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; margin: 2px 0 6px; }
+.armcard { border: 1px solid var(--rule); border-radius: 4px; padding: 6px 10px 8px; background: var(--panel); min-width: 0; }
+.armcard .h { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.armrow { display: grid; grid-template-columns: 14px minmax(0, 1fr) 68px; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+.armbtns { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin-top: 4px; }
+.armbtn { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px 10px; white-space: normal; text-align: left; font-weight: 400; line-height: 1.25; min-width: 0; }
+.armbtn .an { font-weight: 650; color: var(--ink); }
+.armbtn .ar { font-size: 18px; font-weight: 650; min-height: 23px; font-variant-numeric: tabular-nums; }
+.armbtn .meta { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.armbtn.best { border-color: var(--reward); }
+.armbtn.flash { animation: flash-r 0.6s ease-out; }
+.armbtn.flash0 { animation: flash-0 0.6s ease-out; }
+@keyframes flash-r { from { background-color: var(--flash-r); } to { background-color: transparent; } }
+@keyframes flash-0 { from { background-color: var(--hover); } to { background-color: transparent; } }
+:root { --flash-r: rgba(46, 158, 91, 0.25); }
+:root[data-theme="dark"] { --flash-r: rgba(76, 194, 130, 0.25); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --flash-r: rgba(76, 194, 130, 0.25); } }
+.rules { display: flex; flex-wrap: wrap; gap: 0 18px; }
+.rules .check { height: 30px; }
+@media (prefers-reduced-motion: reduce) { .armbtn.flash, .armbtn.flash0 { animation: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="masthead">
+  <h1>Reinforcement Learning Explorer</h1>
+  <p class="lede">Small worlds from Lecture 6: gridworlds to play yourself and to watch value iteration, Q-learning, SARSA, and Monte Carlo control learn; Monte Carlo against TD; a bandit lab whose arms you set, to play and to run five rules on; the policy gradient on a short corridor; PPO's clipped objective; and behavior cloning against DAgger.</p>
+  <p class="credit">For <i>Generative AI from First Principles</i>, Lecture 6. Everything runs in your browser. The gridworld's look follows Andrej Karpathy's <a href="https://cs.stanford.edu/people/karpathy/reinforcejs/">REINFORCEjs</a>; the 4&thinsp;×&thinsp;3 world is Russell and Norvig's, cliff walking and the short corridor are Sutton and Barto's (Examples 6.6 and 13.1).</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#gridworld"><b>1</b>Gridworlds: play, then learn</a>
+  <a href="#prediction"><b>2</b>Monte Carlo against TD</a>
+  <a href="#bandit"><b>3</b>Bandits: exploration</a>
+  <a href="#policy-gradient"><b>4</b>Policy gradient on a corridor</a>
+  <a href="#ppo"><b>5</b>PPO's clipped objective</a>
+  <a href="#imitation"><b>6</b>Behavior cloning and DAgger</a>
+</nav>
+
+<!-- ============================================================== 1. gridworld -->
+<section class="part" id="gridworld">
+  <h2><span class="num">1</span>Gridworlds: play them, then watch an algorithm learn</h2>
+  <p class="intro">Play first: you are the policy and choose every move, and the world decides where the move really goes and what it pays. Then watch an algorithm learn the same world. Value iteration knows the world's rules and sweeps the Bellman optimality update over every cell. Q-learning, SARSA, and Monte Carlo control know nothing; they walk the grid, acting ε-greedily, and learn action values from what happens: Q-learning and SARSA after every step, from the reward and their own next estimate, Monte Carlo after each episode, from the return that followed.</p>
+  <p class="where">Notes §3 (the 4 × 3 world), §6 (value iteration), §7 (Monte Carlo), §9 (SARSA, Q-learning, cliff walking), §17 (the 7 × 7 grid).</p>
+
+  <div class="bar">
+    <div class="ctl" style="flex:0 0 auto; max-width:none">
+      <div class="ctl-top"><label id="g-mode-l">Mode</label></div>
+      <div class="seg" role="group" aria-labelledby="g-mode-l">
+        <button id="g-mode-play" aria-pressed="false">Play it yourself</button>
+        <button id="g-mode-watch" aria-pressed="true">Watch it learn</button>
+      </div>
+    </div>
+    <div class="ctl wide">
+      <div class="ctl-top"><label for="g-world">World</label></div>
+      <div class="select-wrap"><select id="g-world">
+        <option value="w43">4 × 3 world: moves slip sideways (0.2)</option>
+        <option value="cliff">Cliff walking: deterministic</option>
+        <option value="pits">7 × 7 grid with pits: slips (0.15)</option>
+      </select></div>
+    </div>
+    <div class="ctl wide watch-only">
+      <div class="ctl-top"><label for="g-method">Method</label></div>
+      <div class="select-wrap"><select id="g-method">
+        <option value="vi">Value iteration (knows the model)</option>
+        <option value="q">Q-learning (off-policy)</option>
+        <option value="sarsa">SARSA (on-policy)</option>
+        <option value="mc">Monte Carlo control (every visit)</option>
+      </select></div>
+    </div>
+    <div class="ctl watch-only">
+      <div class="ctl-top"><label for="g-gamma">Discount γ</label><span class="val" id="g-gamma-v"></span></div>
+      <input type="range" id="g-gamma" min="0.8" max="1" step="0.01" value="1">
+    </div>
+    <div class="ctl learn-only">
+      <div class="ctl-top"><label for="g-eps">Exploration ε</label><span class="val" id="g-eps-v"></span></div>
+      <input type="range" id="g-eps" min="0" max="0.5" step="0.01" value="0.1">
+    </div>
+    <div class="ctl learn-only">
+      <div class="ctl-top"><label for="g-alpha">Step size η</label><span class="val" id="g-alpha-v"></span></div>
+      <input type="range" id="g-alpha" min="0.01" max="1" step="0.01" value="0.5">
+    </div>
+    <div class="ctl learn-only">
+      <div class="ctl-top"><label for="g-speed">Speed of “Run”</label><span class="val" id="g-speed-v"></span></div>
+      <input type="range" id="g-speed" min="0" max="7" step="1" value="2">
+    </div>
+  </div>
+  <div class="bar" style="border-top:0; padding-top:0; margin-top:0">
+    <div class="buttons vi-only">
+      <button id="g-sweep">Sweep once</button>
+      <button id="g-play-vi" class="primary">Sweep to convergence</button>
+      <button id="g-jump-vi">Jump to convergence</button>
+      <button id="g-reset-vi">Reset values</button>
+    </div>
+    <div class="buttons learn-only">
+      <button id="g-step">One step</button>
+      <button id="g-episode">One episode</button>
+      <button id="g-play" class="primary">Run</button>
+      <button id="g-ff">Fast-forward</button>
+      <button id="g-100">Add 100 episodes</button>
+      <button id="g-reset">Reset</button>
+    </div>
+    <div class="seg watch-only" role="group" aria-label="What the cells show">
+      <button id="g-view-v" aria-pressed="true">State values</button>
+      <button id="g-view-q" aria-pressed="false">Action values</button>
+    </div>
+    <label class="check play-only"><input type="checkbox" id="g-hint"> Show the best values V* and moves (a hint)</label>
+    <div class="buttons play-only"><button id="g-play-reset">Reset my episodes</button></div>
+  </div>
+
+  <div class="figrow">
+    <figure class="gridwrap" id="g-area">
+      <canvas id="g-canvas" tabindex="0" aria-label="The gridworld" role="img"></canvas>
+      <div class="playrow play-only">
+        <div class="pad" role="group" aria-label="Move the agent">
+          <button class="up" data-a="0" aria-label="Move up">↑</button>
+          <button class="left" data-a="3" aria-label="Move left">←</button>
+          <button class="down" data-a="2" aria-label="Move down">↓</button>
+          <button class="right" data-a="1" aria-label="Move right">→</button>
+        </div>
+        <p class="keyhint" id="g-keyhint"></p>
+      </div>
+      <div class="stats" id="g-stats"></div>
+    </figure>
+    <figure>
+      <p class="ftitle" id="g-chart-title"></p>
+      <canvas id="g-chart" role="img" aria-label="Learning curve"></canvas>
+      <figcaption id="g-chart-cap"></figcaption>
+    </figure>
+  </div>
+  <div class="readout" id="g-readout" aria-live="polite"></div>
+</section>
+
+<!-- ============================================================== 2. Monte Carlo against TD -->
+<section class="part" id="prediction">
+  <h2><span class="num">2</span>Predicting values: Monte Carlo against TD</h2>
+  <p class="intro">Both estimate the values of one fixed policy in the short corridor (section 4) from the same episodes. Monte Carlo waits for each episode to end and moves each visited state's value toward the return that followed; TD moves it after every step toward one reward plus its own estimate of the next state. Every step costs 1, so a state's true value is minus the expected number of steps to the goal.</p>
+  <p class="where">Notes §7 (Figures 18–20): the targets, one update by hand, and the error curves.</p>
+  <div class="bar">
+    <div class="ctl">
+      <div class="ctl-top"><label for="m-p">Policy p = P(right)</label><span class="val" id="m-p-v"></span></div>
+      <input type="range" id="m-p" min="0.2" max="0.8" step="0.05" value="0.5">
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="m-eta">Step size η</label><span class="val" id="m-eta-v"></span></div>
+      <input type="range" id="m-eta" min="0.01" max="0.3" step="0.01" value="0.1">
+    </div>
+    <div class="buttons">
+      <button id="m-one">One episode</button>
+      <button id="m-ten" class="primary">Ten episodes</button>
+      <button id="m-reset">Reset to 0</button>
+      <button id="m-avg">Average of 100 runs</button>
+    </div>
+  </div>
+  <div class="legend">
+    <span style="--c:var(--mc)"><i></i>Monte Carlo</span>
+    <span style="--c:var(--td)"><i></i>TD</span>
+    <span style="--c:var(--ink)"><i></i>true value</span>
+  </div>
+  <div class="figrow even">
+    <figure>
+      <p class="ftitle">The estimates of the three states' values</p>
+      <canvas id="m-bars" role="img" aria-label="Estimated and true values of the three corridor states"></canvas>
+    </figure>
+    <figure>
+      <p class="ftitle">Error of the estimates, by episode</p>
+      <canvas id="m-err" role="img" aria-label="Root mean square error by episode"></canvas>
+      <figcaption>The root mean square error over the three states. Thin: this run; thick, after “Average of 100 runs”: the mean over 100 runs of 500 episodes from 0, at the current p and η.</figcaption>
+    </figure>
+  </div>
+  <div class="readout" id="m-readout" aria-live="polite"></div>
+</section>
+
+<!-- ============================================================== 3. bandit -->
+<section class="part" id="bandit">
+  <h2><span class="num">3</span>Bandits: why an agent must explore</h2>
+  <p class="intro">A bandit is a one-step problem: pull an arm, get a reward drawn from that arm's distribution, repeat. The agent learns only about the arms it pulls, so it must trade exploiting the best arm so far against exploring the others. Set the arms, pull them yourself, then run the rules on the same arms. The page opens on the notes' bandit: two arms that pay 1 with probabilities 0.7 and 0.4, and 0 otherwise. A short horizon flatters ε-greedy, so watch the regret curves bend.</p>
+  <p class="where">Notes §8 and Appendix E (regret), Appendix G (the runs); §11 for the gradient bandit, which is REINFORCE.</p>
+
+  <h3 class="sub">The arms</h3>
+  <div class="bar">
+    <div class="ctl wide">
+      <div class="ctl-top"><label for="b-arms">Arms</label></div>
+      <div class="select-wrap"><select id="b-arms">
+        <option value="notes">2 arms: 0.7 and 0.4 (the notes' bandit)</option>
+        <option value="bern5">5 arms, chances drawn at random</option>
+        <option value="bern10">10 arms, chances drawn at random</option>
+        <option value="gauss10">10 Gaussian arms, Sutton and Barto's testbed</option>
+        <option value="custom">Your own settings</option>
+      </select></div>
+    </div>
+    <div class="ctl wide">
+      <div class="ctl-top"><label id="b-fam-l">Rewards</label></div>
+      <div class="seg" role="group" aria-labelledby="b-fam-l">
+        <button id="b-fam-bern" aria-pressed="true">Bernoulli: 1 or 0</button>
+        <button id="b-fam-gauss" aria-pressed="false">Gaussian</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="b-k">Number of arms</label><span class="val" id="b-k-v"></span></div>
+      <input type="range" id="b-k" min="2" max="10" step="1" value="2">
+    </div>
+    <div class="buttons">
+      <button id="b-rand">Randomize</button>
+    </div>
+  </div>
+  <div class="armgrid" id="b-editor"></div>
+  <p class="where" id="b-editor-note"></p>
+
+  <h3 class="sub">Play them yourself</h3>
+  <div id="b-playarea">
+    <div class="bar" style="padding-top:8px">
+      <label class="check"><input type="checkbox" id="b-blind"> Play blind: hide the arms and my regret</label>
+      <div class="buttons"><button id="b-me-reset">Reset my pulls</button></div>
+      <span class="keyhint">Click an arm to pull it; with an arm focused, keys 1–9 and 0 pull arms 1–10.</span>
+    </div>
+    <div class="armbtns" id="b-buttons" role="group" aria-label="The arms"></div>
+    <div class="stats" id="b-me-stats"></div>
+    <div class="figrow even" style="margin-top:10px">
+      <figure>
+        <p class="ftitle">Your regret, and the rules' average regret over the same number of pulls</p>
+        <canvas id="b-you" role="img" aria-label="Your cumulative regret against the rules'"></canvas>
+      </figure>
+      <div class="readout" id="b-me-readout" aria-live="polite" style="margin-top:0"></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Run the rules on the same arms</h3>
+  <div class="bar">
+    <div class="rules" role="group" aria-label="Rules to run" id="b-rules"></div>
+  </div>
+  <div class="bar" style="border-top:0; padding-top:0; margin-top:0">
+    <div class="ctl">
+      <div class="ctl-top"><label for="b-eps">ε for ε-greedy</label><span class="val" id="b-eps-v"></span></div>
+      <input type="range" id="b-eps" min="0.01" max="0.3" step="0.01" value="0.1">
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="b-c">UCB constant c</label><span class="val" id="b-c-v"></span></div>
+      <input type="range" id="b-c" min="0" max="3" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="b-alpha">Gradient bandit step η</label><span class="val" id="b-alpha-v"></span></div>
+      <input type="range" id="b-alpha" min="0.02" max="0.5" step="0.02" value="0.1">
+    </div>
+    <label class="check"><input type="checkbox" id="b-base" checked> baseline: the average reward</label>
+    <div class="ctl" style="max-width:150px">
+      <div class="ctl-top"><label for="b-T">Pulls</label></div>
+      <div class="select-wrap"><select id="b-T">
+        <option value="100">100</option><option value="500">500</option><option value="1000">1,000</option>
+        <option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="10000">10,000</option>
+      </select></div>
+    </div>
+    <div class="ctl" style="max-width:150px">
+      <div class="ctl-top"><label for="b-R">Runs</label></div>
+      <div class="select-wrap"><select id="b-R">
+        <option value="50">50</option><option value="100">100</option><option value="200" selected>200</option>
+        <option value="500">500</option><option value="1000">1,000</option><option value="2000">2,000</option>
+      </select></div>
+    </div>
+    <label class="check"><input type="checkbox" id="b-log"> pulls on a log scale</label>
+    <div class="buttons">
+      <button id="b-run" class="primary">Run again</button>
+    </div>
+  </div>
+  <p class="where" id="b-how"></p>
+  <div class="legend" id="b-legend"></div>
+  <div class="figrow even">
+    <figure>
+      <p class="ftitle">Average reward per pull</p>
+      <canvas id="b-reward" role="img" aria-label="Average reward, by pull"></canvas>
+    </figure>
+    <figure>
+      <p class="ftitle">Share of runs pulling the best arm</p>
+      <canvas id="b-best" role="img" aria-label="Share of runs pulling the best arm, by pull"></canvas>
+    </figure>
+  </div>
+  <div class="figrow even" style="margin-top:12px">
+    <figure>
+      <p class="ftitle">Regret: reward lost against always pulling the best arm</p>
+      <canvas id="b-regret" role="img" aria-label="Cumulative regret, by pull"></canvas>
+    </figure>
+    <figure>
+      <p class="ftitle">The arms (hidden from the agent)</p>
+      <canvas id="b-armsplot" role="img" aria-label="Each arm's reward distribution"></canvas>
+      <figcaption id="b-arms-cap"></figcaption>
+    </figure>
+  </div>
+  <div class="tablewrap"><table class="summary" id="b-table"></table></div>
+  <div class="readout" id="b-readout" aria-live="polite"></div>
+</section>
+
+<!-- ============================================================== 3. policy gradient -->
+<section class="part" id="policy-gradient">
+  <h2><span class="num">4</span>The policy gradient on a short corridor</h2>
+  <p class="intro">Three states and a goal; every step costs 1. The agent cannot tell the states apart, so its policy is one number, p, the chance of moving right, and in the middle state the actions are reversed. The best p is 2 − √2 ≈ 0.586. REINFORCE weights each action by the return that followed it; a baseline subtracts a learned average return; actor–critic weights it by a critic's TD error.</p>
+  <p class="where">Notes §3 (the corridor), Appendix A.1 (J(p)), §11 (REINFORCE), §12 (baselines), §13 (actor–critic), and Appendix G (100 runs of each).</p>
+  <div class="bar">
+    <div class="ctl wide">
+      <div class="ctl-top"><label for="c-method">Method</label></div>
+      <div class="select-wrap"><select id="c-method">
+        <option value="rf">REINFORCE</option>
+        <option value="rfb">REINFORCE with a baseline</option>
+        <option value="ac">Actor–critic</option>
+      </select></div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="c-eta">Step size η</label><span class="val" id="c-eta-v"></span></div>
+      <input type="range" id="c-eta" min="-12" max="-4" step="1" value="-8">
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="c-p0">Start p</label><span class="val" id="c-p0-v"></span></div>
+      <input type="range" id="c-p0" min="0.05" max="0.95" step="0.05" value="0.05">
+    </div>
+    <div class="buttons">
+      <button id="c-one">One episode</button>
+      <button id="c-play" class="primary">Run 1,000 episodes</button>
+      <button id="c-reset">Reset</button>
+      <button id="c-many">100 runs</button>
+    </div>
+  </div>
+  <canvas id="c-corridor" role="img" aria-label="The short corridor"></canvas>
+  <div class="figrow even" style="margin-top:10px">
+    <figure>
+      <p class="ftitle">Expected return J(p), and where the policy has been</p>
+      <canvas id="c-J" role="img" aria-label="J of p"></canvas>
+      <figcaption>The curve is exact: J(p) = −2(2 − p) / (p(1 − p)). Dots: the policy after each episode of this run, darker for later.</figcaption>
+    </figure>
+    <figure>
+      <p class="ftitle">J of the current policy, by episode</p>
+      <canvas id="c-curve" role="img" aria-label="J by episode"></canvas>
+      <figcaption id="c-curve-cap">This run. Press “100 runs” for the median and the range of 100 runs with the same settings (10th to 90th percentile).</figcaption>
+    </figure>
+  </div>
+  <div class="readout" id="c-readout" aria-live="polite"></div>
+</section>
+
+<!-- ============================================================== 4. PPO -->
+<section class="part" id="ppo">
+  <h2><span class="num">5</span>PPO's clipped objective</h2>
+  <p class="intro">PPO reuses a batch for several steps by weighting each sample's advantage Â by the ratio ρ = π<sub>new</sub>(a|s) / π<sub>old</sub>(a|s). The surrogate ρÂ is right near the old policy and wrong far from it; PPO takes the smaller of ρÂ and clip(ρ, 1 − ε, 1 + ε)Â, so a sample stops asking for change once its ratio has moved by ε in the direction its advantage favors.</p>
+  <p class="where">Notes §14 (the surrogate, the clipped objective, and PPO in the corridor).</p>
+  <div class="bar">
+    <div class="ctl">
+      <div class="ctl-top"><label for="p-eps">Clip range ε (not ε-greedy's ε)</label><span class="val" id="p-eps-v"></span></div>
+      <input type="range" id="p-eps" min="0.05" max="0.5" step="0.01" value="0.2">
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="p-old">Corridor p<sub>old</sub></label><span class="val" id="p-old-v"></span></div>
+      <input type="range" id="p-old" min="0.1" max="0.9" step="0.01" value="0.5">
+    </div>
+  </div>
+  <div class="legend">
+    <span style="--c:var(--bad)"><i class="dash"></i>surrogate ρÂ</span>
+    <span style="--c:var(--neutral)"><i class="dash"></i>clipped term</span>
+    <span style="--c:var(--ppo)"><i></i>PPO's objective (the smaller)</span>
+    <span style="--c:var(--policy)"><i></i>true change in J</span>
+  </div>
+  <div class="figrow even">
+    <figure>
+      <p class="ftitle">One sample's term, against its ratio ρ</p>
+      <canvas id="p-clip" role="img" aria-label="PPO objective against the ratio"></canvas>
+      <figcaption>Left: a good action (Â = +1); right: a bad one (Â = −1). In the shaded range the sample's gradient is zero. A move in the wrong direction is never clipped.</figcaption>
+    </figure>
+    <figure>
+      <p class="ftitle">The whole corridor: predicted and true change in J</p>
+      <canvas id="p-sur" role="img" aria-label="Surrogate and true change in the corridor"></canvas>
+      <figcaption id="p-sur-cap"></figcaption>
+    </figure>
+  </div>
+  <div class="readout" id="p-readout" aria-live="polite"></div>
+</section>
+
+<!-- ============================================================== 6. behavior cloning and DAgger -->
+<section class="part" id="imitation">
+  <h2><span class="num">6</span>Behavior cloning and DAgger</h2>
+  <p class="intro">An expert crosses a 7 × 7 grid past four pits; whoever acts, a move is replaced by a random one with probability 0.15. The learner copies the expert's action in each state it has a label for, and moves at random elsewhere. Cloning takes its labels from the expert's own episodes; DAgger takes half from them and half by running the learner and asking the expert what it would have done where the learner went.</p>
+  <p class="where">Notes §17 (Figure 41).</p>
+  <div class="bar">
+    <div class="ctl wide">
+      <div class="ctl-top"><label for="i-method">Method</label></div>
+      <div class="select-wrap"><select id="i-method">
+        <option value="bc">Behavior cloning</option>
+        <option value="dagger">DAgger</option>
+      </select></div>
+    </div>
+    <div class="ctl wide">
+      <div class="ctl-top"><label for="i-demo">Expert's demonstrations</label></div>
+      <div class="select-wrap"><select id="i-demo">
+        <option value="clean">recorded without slips</option>
+        <option value="slip">recorded with slips</option>
+      </select></div>
+    </div>
+    <div class="ctl">
+      <div class="ctl-top"><label for="i-budget">Labeled states</label><span class="val" id="i-budget-v"></span></div>
+      <input type="range" id="i-budget" min="0" max="6" step="1" value="3">
+    </div>
+    <div class="buttons">
+      <button id="i-train" class="primary">Collect labels and train</button>
+      <button id="i-compare">Compare all budgets</button>
+    </div>
+  </div>
+  <div class="figrow">
+    <figure class="gridwrap">
+      <canvas id="i-grid" role="img" aria-label="The grid, the labels, and the learned policy"></canvas>
+      <figcaption>Blue shading: how many labels each state has; arrows: the learner's action there. Gray dots: states with no label, where it moves at random. Pits red, goal green.</figcaption>
+    </figure>
+    <figure>
+      <p class="ftitle">Episodes that reach the goal, by number of labeled states</p>
+      <div class="legend">
+        <span style="--c:var(--policy)"><i class="dash"></i>cloning, demonstrations without slips</span>
+        <span style="--c:var(--policy)"><i></i>cloning, with slips</span>
+        <span style="--c:var(--value)"><i></i>DAgger</span>
+      </div>
+      <canvas id="i-chart" role="img" aria-label="Success rate against labels"></canvas>
+      <figcaption>Each point: 6 sets of labels, each learner scored on 500 episodes with slips. Gray dashed: the expert.</figcaption>
+    </figure>
+  </div>
+  <div class="readout" id="i-readout" aria-live="polite"></div>
+</section>
+
+<p class="footer">Built for Lecture 6 of <i>Generative AI from First Principles</i> (Week 6, reinforcement learning). Further interactive pages: Andrej Karpathy's <a href="https://cs.stanford.edu/people/karpathy/reinforcejs/">REINFORCEjs</a> (dynamic programming, TD learning, and deep Q-networks) and Arthur Juliani's <a href="https://awjuliani.github.io/web-rl-playground/">Beginner's RL Playground</a>.</p>
+</div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ shared helpers */
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const sigma = (x) => 1 / (1 + Math.exp(-x));
+const logit = (p) => Math.log(p / (1 - p));
+const fmt = (x, d = 2) => (x < 0 ? "−" : "") + Math.abs(x).toFixed(d);
+const fmtS = (x, d = 2) => (x < 0 ? "−" : "+") + Math.abs(x).toFixed(d);
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hexToRgb(h) {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function mix(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
+}
+function withAlpha(c, al) {
+  const a = hexToRgb(c);
+  return `rgba(${a[0]},${a[1]},${a[2]},${al})`;
+}
+function setupCanvas(cv, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+function widthOf(el) { return Math.max(240, Math.floor(el.parentElement.getBoundingClientRect().width)); }
+
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo;
+  if (!(span > 0)) return [lo];
+  const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= n) || 10 * mag;
+  const out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(Math.abs(v) < 1e-12 ? 0 : v);
+  return out;
+}
+function tickLabel(v) {
+  const a = Math.abs(v);
+  let s = a >= 1000 ? a.toLocaleString("en-US") : (Number.isInteger(+a.toFixed(6)) ? String(Math.round(a)) : String(+a.toPrecision(3)));
+  return (v < 0 ? "−" : "") + s;
+}
+
+/* A chart frame: axes, ticks, labels; returns mappings and the plot rectangle. */
+function frame(ctx, w, h, o) {
+  const m = Object.assign({ l: 50, r: 12, t: 8, b: 38 }, o.margin || {});
+  const L = m.l, R = w - m.r, T = m.t, B = h - m.b;
+  const [x0, x1] = o.x, [y0, y1] = o.y;
+  const X = (x) => L + (x - x0) / (x1 - x0) * (R - L);
+  const Y = (y) => B - (y - y0) / (y1 - y0) * (B - T);
+  ctx.font = "12px " + css("--font-fig");
+  ctx.lineWidth = 1;
+  const grid = css("--rule"), axis = css("--rule-2"), ink3 = css("--ink-3"), ink2 = css("--ink-2");
+  const yt = o.yticks || niceTicks(y0, y1, 5), xt = o.xticks || niceTicks(x0, x1, 6);
+  ctx.strokeStyle = grid;
+  yt.forEach((v) => { const y = Math.round(Y(v)) + 0.5; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); });
+  ctx.strokeStyle = axis;
+  ctx.beginPath(); ctx.moveTo(L + 0.5, T); ctx.lineTo(L + 0.5, B + 0.5); ctx.lineTo(R, B + 0.5); ctx.stroke();
+  ctx.fillStyle = ink3; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  yt.forEach((v) => ctx.fillText((o.yfmt || tickLabel)(v), L - 6, Y(v)));
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  xt.forEach((v) => {
+    const x = X(v); if (x < L - 1 || x > R + 1) return;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, B); ctx.lineTo(Math.round(x) + 0.5, B + 4); ctx.stroke();
+    ctx.fillText((o.xfmt || tickLabel)(v), x, B + 6);
+  });
+  ctx.fillStyle = ink2;
+  if (o.xlabel) { ctx.textBaseline = "alphabetic"; ctx.fillText(o.xlabel, (L + R) / 2, h - 4); }
+  if (o.ylabel) {
+    ctx.save(); ctx.translate(12, (T + B) / 2); ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(o.ylabel, 0, 0); ctx.restore();
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(L, T - 1, R - L, B - T + 2); ctx.clip();
+  return { X, Y, L, R, T, B, done: () => ctx.restore() };
+}
+function polyline(ctx, F, xs, ys, color, width = 1.6, dash = null, alpha = 1) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha;
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); let pen = false;
+  for (let i = 0; i < xs.length; i++) {
+    const y = ys[i];
+    if (y === null || !isFinite(y)) { pen = false; continue; }
+    const px = F.X(xs[i]), py = F.Y(y);
+    if (!pen) { ctx.moveTo(px, py); pen = true; } else ctx.lineTo(px, py);
+  }
+  ctx.stroke(); ctx.restore();
+}
+function band(ctx, F, xs, lo, hi, color, alpha = 0.18) {
+  ctx.save(); ctx.fillStyle = withAlpha(color, alpha); ctx.beginPath();
+  xs.forEach((x, i) => (i ? ctx.lineTo(F.X(x), F.Y(hi[i])) : ctx.moveTo(F.X(x), F.Y(hi[i]))));
+  for (let i = xs.length - 1; i >= 0; i--) ctx.lineTo(F.X(xs[i]), F.Y(lo[i]));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function label(ctx, text, x, y, color, align = "left", base = "middle", bold = false) {
+  ctx.save(); ctx.font = (bold ? "bold " : "") + "12px " + css("--font-fig");
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.fillText(text, x, y); ctx.restore();
+}
+function haloLabel(ctx, text, x, y, color, align = "left", base = "middle") {
+  ctx.save(); ctx.font = "12px " + css("--font-fig"); ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.lineWidth = 4; ctx.strokeStyle = css("--bg"); ctx.lineJoin = "round"; ctx.strokeText(text, x, y);
+  ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+}
+const redrawers = [];
+function onRedraw(f) { redrawers.push(f); }
+function redrawAll() { redrawers.forEach((f) => f()); }
+let resizeTimer = null;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(redrawAll, 80); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ------------------------------------------------------------------ 1. gridworld */
+(function gridworld() {
+  const ACT = [[0, 1], [1, 0], [0, -1], [-1, 0]];             // up, right, down, left
+  const ANAME = ["up", "right", "down", "left"];
+  const WORLDS = {
+    w43: {
+      W: 4, H: 3, start: [0, 0], walls: [[1, 1]], terms: [[3, 2, 1], [3, 1, -1]], cliff: [], step: -0.04,
+      slip: (a) => [[0.8, a], [0.1, (a + 1) % 4], [0.1, (a + 3) % 4]], alpha: 0.1, alphaMC: 0.02, eps: 0.1, gamma: 1, floor: -2.5,
+      note: "Every step costs 0.04; the exits pay +1 and −1. A move goes the intended way with probability 0.8 and sideways with 0.1 each.",
+    },
+    cliff: {
+      W: 12, H: 4, start: [0, 0], walls: [], terms: [[11, 0, 0]], cliff: [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0]],
+      step: -1, slip: (a) => [[1, a]], alpha: 0.5, alphaMC: 0.02, eps: 0.1, gamma: 1, floor: -150,
+      note: "Every step costs 1; stepping into the cliff costs 100 and sends the agent back to S. Moves never slip.",
+    },
+    pits: {
+      W: 7, H: 7, start: [0, 0], walls: [], terms: [[6, 6, 1], [2, 2, -1], [3, 4, -1], [4, 1, -1], [5, 4, -1]], cliff: [],
+      step: -0.02, slip: (a) => [[0.85 + 0.0375, a], [0.0375, (a + 1) % 4], [0.0375, (a + 2) % 4], [0.0375, (a + 3) % 4]],
+      alpha: 0.1, alphaMC: 0.02, eps: 0.1, gamma: 1, floor: -2.5,
+      note: "Every step costs 0.02; the goal pays +1 and each pit −1. With probability 0.15 a move is replaced by a random one.",
+    },
+  };
+  let world, Wd, Hd, N, isWall, termR, isCliff, startS, model, Vstar, vstarG = null;
+  let V, Vprev, sweeps, deltas, starts, Q, agent, epReturn, epSteps, epPath, returns, losses, epSq, epN, mcEp, totalSteps, lastUpdate, lastStep, selected = null;
+  let running = null, viPlaying = false, view = "v", method = "vi", mode = "watch", hint = false;
+  const play = {};
+  const key = (x, y) => y * Wd + x;
+  const xy = (s) => [s % Wd, Math.floor(s / Wd)];
+
+  function buildWorld(name) {
+    world = WORLDS[name]; Wd = world.W; Hd = world.H; N = Wd * Hd;
+    isWall = new Array(N).fill(false); termR = new Array(N).fill(null); isCliff = new Array(N).fill(false);
+    world.walls.forEach(([x, y]) => (isWall[key(x, y)] = true));
+    world.terms.forEach(([x, y, r]) => (termR[key(x, y)] = r));
+    world.cliff.forEach(([x, y]) => (isCliff[key(x, y)] = true));
+    startS = key(world.start[0], world.start[1]);
+    // model[s][a] = list of {p, s2, r, done}
+    model = [];
+    for (let s = 0; s < N; s++) {
+      model.push([]);
+      for (let a = 0; a < 4; a++) {
+        const outs = new Map();
+        if (!isWall[s] && termR[s] === null && !isCliff[s]) {
+          for (const [p, b] of world.slip(a)) {
+            const o1 = move(s, b);
+            const k = o1.s2 + ":" + o1.r;
+            const o = outs.get(k) || { p: 0, s2: o1.s2, r: o1.r, done: o1.done };
+            o.p += p; outs.set(k, o);
+          }
+        }
+        model[s].push([...outs.values()]);
+      }
+    }
+    vstarG = null;
+    Vstar = solveV(1);                 // the best expected sum of rewards from each cell, the target of play
+  }
+  function move(s, b) {                // where a move in direction b really goes (after any slip)
+    let [x, y] = xy(s); x += ACT[b][0]; y += ACT[b][1];
+    const bump = x < 0 || y < 0 || x >= Wd || y >= Hd || isWall[key(x, y)];
+    let s2 = bump ? s : key(x, y), r = world.step, done = false, fell = null;
+    if (isCliff[s2]) { r = -100; fell = s2; s2 = startS; }
+    else if (termR[s2] !== null) { r = world.step + termR[s2]; done = true; }
+    return { s2, r, done, bump, fell };
+  }
+  const isState = (s) => !isWall[s] && termR[s] === null && !isCliff[s];
+  function lookG(s, a, Vv, g) {
+    let q = 0;
+    for (const o of model[s][a]) q += o.p * (o.r + (o.done ? 0 : g * Vv[o.s2]));
+    return q;
+  }
+  function solveV(g) {
+    let v = new Float64Array(N);
+    for (let it = 0; it < 20000; it++) {
+      const nv = new Float64Array(N); let d = 0;
+      for (let s = 0; s < N; s++) {
+        if (!isState(s)) continue;
+        let best = -Infinity;
+        for (let a = 0; a < 4; a++) best = Math.max(best, lookG(s, a, v, g));
+        nv[s] = best; d = Math.max(d, Math.abs(best - v[s]));
+      }
+      v = nv; if (d < 1e-12) break;
+    }
+    return v;
+  }
+  function vstarFor(g) {
+    if (g === 1) return Vstar;
+    if (!vstarG || vstarG.g !== g) vstarG = { g, v: solveV(g) };
+    return vstarG.v;
+  }
+  function resetValues() { V = new Float64Array(N); sweeps = 0; deltas = []; starts = []; lastUpdate = null; }
+  function resetLearn() {
+    Q = Array.from({ length: N }, () => new Float64Array(4));
+    agent = startS; epReturn = 0; epSteps = 0; epPath = [startS]; returns = []; losses = []; epSq = 0; epN = 0; mcEp = [];
+    totalSteps = 0; lastUpdate = null; lastStep = null; pendingA = null;
+  }
+  function resetPlay() {
+    Object.assign(play, { s: startS, ret: 0, steps: 0, path: [startS], returns: [], log: [], last: null, ended: null, donePath: null });
+  }
+  const gamma = () => +$("g-gamma").value;
+  const lookahead = (s, a, Vv) => lookG(s, a, Vv, gamma());
+  function sweep() {
+    const nv = new Float64Array(N); let delta = 0;
+    for (let s = 0; s < N; s++) {
+      if (!isState(s)) continue;
+      let best = -Infinity;
+      for (let a = 0; a < 4; a++) best = Math.max(best, lookahead(s, a, V));
+      nv[s] = best; delta = Math.max(delta, Math.abs(best - V[s]));
+    }
+    Vprev = V; V = nv; sweeps++; deltas.push(delta); starts.push(V[startS]);
+    return delta;
+  }
+  function greedyOf(vals) {
+    let b = 0; for (let a = 1; a < 4; a++) if (vals[a] > vals[b]) b = a;
+    let ties = 0; for (let a = 0; a < 4; a++) if (vals[b] - vals[a] < 1e-9) ties++;
+    return ties > 1 ? null : b;
+  }
+  function stateValues() {          // V for display
+    if (method === "vi") return V;
+    const out = new Float64Array(N);
+    for (let s = 0; s < N; s++) if (isState(s)) out[s] = Math.max(...Q[s]);
+    return out;
+  }
+  function actionValues(s) {
+    if (method === "vi") return [0, 1, 2, 3].map((a) => lookahead(s, a, V));
+    return Array.from(Q[s]);
+  }
+
+  // --- learning from experience: Q-learning, SARSA, Monte Carlo control
+  let pendingA = null;          // SARSA's next action, chosen before the update
+  const rng = Math.random;
+  function epsGreedy(s) {
+    const eps = +$("g-eps").value;
+    if (rng() < eps) return Math.floor(rng() * 4);
+    const q = Q[s]; let m = Math.max(...q); const best = [];
+    for (let a = 0; a < 4; a++) if (m - q[a] < 1e-12) best.push(a);
+    return best[Math.floor(rng() * best.length)];
+  }
+  function sample(s, a) {
+    const outs = model[s][a]; let u = rng(), acc = 0;
+    for (const o of outs) { acc += o.p; if (u < acc) return o; }
+    return outs[outs.length - 1];
+  }
+  const CAP = 1000;
+  function endEpisode() {
+    returns.push(epReturn); losses.push(epN ? epSq / epN : NaN);
+    agent = startS; epReturn = 0; epSteps = 0; epPath = [startS]; epSq = 0; epN = 0; mcEp = []; pendingA = null;
+  }
+  function advance(o) {
+    if (o.r === -100) epPath.push(null);            // fell off the cliff: the trail restarts at S
+    agent = o.s2; epPath.push(agent); if (epPath.length > 400) epPath.shift();
+  }
+  function tdStep(record) {
+    const s = agent, a = pendingA !== null ? pendingA : epsGreedy(s);
+    pendingA = null;
+    const o = sample(s, a), al = +$("g-alpha").value, g = gamma();
+    let target, nextA = null, boot;
+    if (o.done) { target = o.r; boot = 0; }
+    else if (method === "q") { boot = Math.max(...Q[o.s2]); target = o.r + g * boot; }
+    else { nextA = epsGreedy(o.s2); boot = Q[o.s2][nextA]; target = o.r + g * boot; }
+    const old = Q[s][a];
+    Q[s][a] = old + al * (target - old);
+    epSq += (target - old) * (target - old); epN++;
+    if (record) lastUpdate = { s, a, r: o.r, s2: o.s2, done: o.done, old, now: Q[s][a], al, g, boot, nextA, cliff: o.r === -100 };
+    epReturn += o.r; epSteps++; totalSteps++;
+    if (o.done || epSteps >= CAP) endEpisode();
+    else { advance(o); if (method === "sarsa") pendingA = nextA; }
+    return o.done;
+  }
+  function mcStep(record) {
+    // every-visit Monte Carlo control: act epsilon-greedily, remember the episode, and update every visited
+    // Q(s, a) toward the return that followed it once the episode ends
+    const s = agent, a = epsGreedy(s), o = sample(s, a);
+    mcEp.push([s, a, o.r]);
+    epReturn += o.r; epSteps++; totalSteps++;
+    if (record) lastStep = { s, a, r: o.r, cliff: o.r === -100 };
+    if (o.done || epSteps >= CAP) {
+      const g = gamma(), al = +$("g-alpha").value; let G = 0, first = null;
+      for (let t = mcEp.length - 1; t >= 0; t--) {
+        const [st, at, rt] = mcEp[t]; G = rt + g * G;
+        const old = Q[st][at]; Q[st][at] = old + al * (G - old);
+        epSq += (G - old) * (G - old); epN++;
+        if (t === 0) first = { s: st, a: at, G, old, now: Q[st][at] };
+      }
+      lastUpdate = { mc: true, T: mcEp.length, ret: epReturn, first, al, cut: !o.done };
+      endEpisode();
+    } else advance(o);
+    return o.done;
+  }
+  const learnStep = (record = true) => (method === "mc" ? mcStep(record) : tdStep(record));
+  function runEpisode(record = true) {
+    const n0 = returns.length; let guard = 0;
+    while (returns.length === n0 && guard++ < CAP + 5) learnStep(record);
+  }
+
+  // --- playing by hand: the same world, the same slips
+  function slipProb(a, b) { return world.slip(a).reduce((t, [p, d]) => t + (d === b ? p : 0), 0); }
+  function playMove(a) {
+    play.ended = null; play.donePath = null;
+    const outs = world.slip(a); let u = Math.random(), acc = 0, b = outs[outs.length - 1][1];
+    for (const [p, d] of outs) { acc += p; if (u < acc) { b = d; break; } }
+    const s = play.s, o = move(s, b);
+    const entry = { s, a, b, s2: o.s2, r: o.r, done: o.done, bump: o.bump, fell: o.fell };
+    play.ret += o.r; play.steps++; play.last = entry;
+    play.log.push(entry); if (play.log.length > 60) play.log.shift();
+    if (o.fell !== null) play.path.push(o.fell, null, startS);
+    else play.path.push(o.s2);
+    play.s = o.s2;
+    if (o.done) {
+      play.returns.push(play.ret);
+      play.ended = { n: play.returns.length, ret: play.ret, steps: play.steps };
+      play.donePath = play.path; play.s = startS; play.ret = 0; play.steps = 0; play.path = [startS];
+    }
+  }
+
+  // --- drawing
+  let cell = 48;
+  function valueColor(v, scale) {
+    const bg = css("--bg");
+    if (Math.abs(v) < 1e-12) return bg;
+    const t = clamp(Math.abs(v) / scale, 0, 1);
+    return mix(bg, v > 0 ? css("--reward") : css("--bad"), 0.1 + 0.5 * t);
+  }
+  function arrow(ctx, cx, cy, a, len, color, width = 2) {
+    const [dx, dy] = ACT[a]; const ex = cx + dx * len / 2, ey = cy - dy * len / 2, sx = cx - dx * len / 2, sy = cy + dy * len / 2;
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    const hx = dx, hy = -dy, hs = Math.max(4, len * 0.32);
+    ctx.beginPath(); ctx.moveTo(ex + hx * 1.5, ey + hy * 1.5);
+    ctx.lineTo(ex - hx * hs - hy * hs * 0.6, ey - hy * hs + hx * hs * 0.6);
+    ctx.lineTo(ex - hx * hs + hy * hs * 0.6, ey - hy * hs - hx * hs * 0.6); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  const oneCol = () => window.matchMedia("(max-width: 820px)").matches;
+  function drawGrid() {
+    const cv = $("g-canvas"), area = $("g-area");
+    const rw = Math.max(240, Math.floor(area.parentElement.getBoundingClientRect().width)), one = oneCol();
+    const cap = Hd > 5 ? 460 : 620;
+    const avail = one ? Math.min(rw, cap) : Math.min(rw * (Wd > 8 ? 0.58 : 0.46), cap);
+    cell = clamp(Math.floor((avail - 2) / Wd), 22, 76);
+    const w = Wd * cell + 2, h = Hd * cell + 2;
+    area.style.width = one ? "" : Math.max(w, 300) + "px";
+    const ctx = setupCanvas(cv, w, h);
+    // what the cells show: the learner's values (watch), V* as a hint (play), or nothing
+    let src;
+    if (mode === "play") src = hint ? { show: "v", vals: Vstar, q: (s) => [0, 1, 2, 3].map((a) => lookG(s, a, Vstar, 1)) } : { show: "none", q: null };
+    else src = { show: view, vals: stateValues(), q: actionValues };
+    let scale = 1e-9, qs = 1e-9;
+    if (src.show === "v") for (let s = 0; s < N; s++) if (isState(s)) scale = Math.max(scale, Math.abs(src.vals[s]));
+    if (src.show === "q") for (let s = 0; s < N; s++) if (isState(s)) src.q(s).forEach((v) => (qs = Math.max(qs, Math.abs(v))));
+    world.terms.forEach(([, , r]) => (scale = Math.max(scale, Math.abs(r))));
+    const ink = css("--ink"), ink3 = css("--ink-3"), rule = css("--rule-2"), pol = css("--policy");
+    const font = (px, bold) => `${bold ? "bold " : ""}${px}px ${css("--font-fig")}`;
+    const showNums = cell >= 40;
+    for (let s = 0; s < N; s++) {
+      const [x, y] = xy(s), X = 1 + x * cell, Y = 1 + (Hd - 1 - y) * cell, cx = X + cell / 2, cy = Y + cell / 2;
+      if (isWall[s]) { ctx.fillStyle = css("--wall"); ctx.fillRect(X, Y, cell, cell); continue; }
+      if (isCliff[s]) {
+        ctx.fillStyle = css("--cliff"); ctx.fillRect(X, Y, cell, cell);
+        if (cell >= 34) { ctx.fillStyle = ink3; ctx.font = font(11); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("−100", cx, cy); }
+        continue;
+      }
+      if (termR[s] !== null) {
+        const r = termR[s];
+        ctx.fillStyle = r > 0 ? mix(css("--bg"), css("--reward"), 0.45) : r < 0 ? mix(css("--bg"), css("--bad"), 0.45) : mix(css("--bg"), css("--reward"), 0.3);
+        ctx.fillRect(X, Y, cell, cell);
+        ctx.fillStyle = ink; ctx.font = font(Math.min(16, cell * 0.32), true); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(r === 0 ? "G" : (r > 0 ? "+" : "−") + Math.abs(r), cx, cy);
+        continue;
+      }
+      if (src.show === "none") {
+        ctx.fillStyle = css("--bg"); ctx.fillRect(X, Y, cell, cell);
+      } else {
+        const q = src.q(s);
+        if (src.show === "q") {
+          const corners = [[X, Y], [X + cell, Y], [X + cell, Y + cell], [X, Y + cell]];
+          const tri = [[0, 1], [1, 2], [2, 3], [3, 0]];          // up, right, down, left edges
+          for (let a = 0; a < 4; a++) {
+            ctx.fillStyle = valueColor(q[a], qs);
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(...corners[tri[a][0]]); ctx.lineTo(...corners[tri[a][1]]); ctx.closePath(); ctx.fill();
+          }
+          ctx.strokeStyle = withAlpha(css("--ink-3"), 0.25); ctx.lineWidth = 0.6;
+          ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + cell, Y + cell); ctx.moveTo(X + cell, Y); ctx.lineTo(X, Y + cell); ctx.stroke();
+        } else {
+          ctx.fillStyle = valueColor(src.vals[s], scale); ctx.fillRect(X, Y, cell, cell);
+          if (showNums) {
+            const v = src.vals[s];
+            ctx.fillStyle = ink; ctx.font = font(cell >= 60 ? 13 : 11); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(Math.abs(v) >= 10 ? fmt(v, 1) : fmt(v, 2), cx, Y + cell * 0.3);
+          }
+        }
+        const ga = greedyOf(q);
+        if (ga !== null) arrow(ctx, cx, src.show === "q" || !showNums ? cy : Y + cell * 0.66, ga, cell * (src.show === "q" ? 0.42 : 0.34), pol, cell >= 40 ? 2 : 1.5);
+      }
+      if (s === startS) { ctx.fillStyle = ink3; ctx.font = font(11, true); ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillText("S", X + 3, Y + cell - 2); }
+    }
+    // grid lines
+    ctx.strokeStyle = rule; ctx.lineWidth = 1;
+    for (let x = 0; x <= Wd; x++) { ctx.beginPath(); ctx.moveTo(1 + x * cell, 1); ctx.lineTo(1 + x * cell, 1 + Hd * cell); ctx.stroke(); }
+    for (let y = 0; y <= Hd; y++) { ctx.beginPath(); ctx.moveTo(1, 1 + y * cell); ctx.lineTo(1 + Wd * cell, 1 + y * cell); ctx.stroke(); }
+    // the agent and its episode
+    const center = (s) => { const [x, y] = xy(s); return [1 + (x + 0.5) * cell, 1 + (Hd - 1 - y + 0.5) * cell]; };
+    const trail = (path, alpha) => {
+      ctx.save(); ctx.strokeStyle = withAlpha(pol, alpha); ctx.lineWidth = Math.max(2, cell * 0.08); ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.beginPath(); let pen = false;
+      for (const s of path) { if (s === null) { pen = false; continue; } const [px, py] = center(s); pen ? ctx.lineTo(px, py) : ctx.moveTo(px, py); pen = true; }
+      ctx.stroke(); ctx.restore();
+    };
+    let at = null, slipped = false;
+    if (mode === "play") {
+      if (play.donePath) trail(play.donePath, 0.22);
+      if (play.path.length > 1) trail(play.path, 0.4);
+      at = play.s; slipped = !!(play.last && play.last.b !== play.last.a && !play.ended);
+      if (play.ended && play.donePath) {          // ring the cell where the finished episode ended
+        const [ex, ey] = center(play.donePath[play.donePath.length - 1]);
+        ctx.beginPath(); ctx.arc(ex, ey, Math.max(7, cell * 0.24), 0, 2 * Math.PI); ctx.lineWidth = 2; ctx.strokeStyle = pol; ctx.stroke();
+      }
+    } else if (method !== "vi") {
+      if (epPath.length > 1) trail(epPath, 0.35);
+      at = agent;
+    }
+    if (at !== null) {
+      const [px, py] = center(at);
+      ctx.beginPath(); ctx.arc(px, py, Math.max(5, cell * 0.17), 0, 2 * Math.PI);
+      ctx.fillStyle = pol; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = css("--bg"); ctx.stroke();
+      if (slipped) { ctx.beginPath(); ctx.arc(px, py, Math.max(5, cell * 0.17) + 3, 0, 2 * Math.PI); ctx.strokeStyle = css("--bad"); ctx.lineWidth = 2; ctx.stroke(); }
+    }
+    if (selected !== null && selected < N && mode === "watch") {
+      const [x, y] = xy(selected);
+      ctx.strokeStyle = css("--focus"); ctx.lineWidth = 2.5;
+      ctx.strokeRect(1 + x * cell + 1.5, 1 + (Hd - 1 - y) * cell + 1.5, cell - 3, cell - 3);
+    }
+  }
+  // a long series, binned for drawing: thin = the mean of each bin, thick = the trailing mean of the last W
+  function series(arr, win = 20, maxPts = 1500) {
+    const n = arr.length, b = Math.max(1, Math.ceil(n / maxPts)), W = Math.max(win, 5 * b);
+    const pre = new Float64Array(n + 1); for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + (isFinite(arr[i]) ? arr[i] : 0);
+    const xs = [], thin = [], thick = [];
+    for (let i = 0; i < n; i += b) {
+      const j = Math.min(n, i + b), k0 = Math.max(0, j - W);
+      xs.push(j); thin.push((pre[j] - pre[i]) / (j - i)); thick.push((pre[j] - pre[k0]) / (j - k0));
+    }
+    let lo = Infinity, hi = -Infinity; thin.forEach((v) => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+    return { xs, thin, thick, b, W, lo, hi };
+  }
+  function sup(v) { const m = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" }; return String(v).split("").map((c) => m[c] || c).join(""); }
+  const pow10 = (v) => (v === 0 ? "1" : v === 1 ? "10" : "10" + sup(v));
+  function hline(ctx, F, y, color) { ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(F.L, F.Y(y)); ctx.lineTo(F.R, F.Y(y)); ctx.stroke(); ctx.restore(); }
+  const dec = () => (world.step < -0.5 ? 0 : 2);
+  const methodName = { q: "Q-learning", sarsa: "SARSA", mc: "Monte Carlo control" };
+  const methodColor = () => css(method === "q" ? "--value" : method === "mc" ? "--mc" : "--policy");   // the notes' colors
+  function drawChart() {
+    const cv = $("g-chart"), w = widthOf(cv);
+    const best = Vstar[startS], bestTxt = world === WORLDS.cliff ? "best path, −13" : `best policy, on average ${fmt(best, 3)}`;
+    if (mode === "play") {
+      const h = 260, ctx = setupCanvas(cv, w, h), R = play.returns, n = Math.max(R.length, 10);
+      $("g-chart-title").textContent = "Your return per episode";
+      $("g-chart-cap").textContent = `Dots: the sum of the rewards of each of your episodes; line: your average so far; dashed: the best policy's expected return from S, V*(S) = ${fmt(best, 3)}${world === WORLDS.cliff ? "" : ", which no way of playing can beat on average"}.`;
+      let lo = Math.min(0, best), hi = Math.max(best, world.step < -0.5 ? -5 : 1);
+      R.forEach((r) => { lo = Math.min(lo, r); hi = Math.max(hi, r); });
+      lo = Math.max(lo, world.floor); const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+      const F = frame(ctx, w, h, { x: [0, n + 0.5], y: [lo, hi], xticks: niceTicks(0, n, 6).filter((v) => Number.isInteger(v)), xlabel: "your episode", ylabel: "return" });
+      hline(ctx, F, best, css("--ink-3"));
+      const green = css("--reward"), xs = R.map((_, i) => i + 1);
+      let s = 0; const avg = R.map((r, i) => (s += r) / (i + 1));
+      polyline(ctx, F, xs, avg.map((v) => Math.max(v, lo)), green, 2.4);
+      R.forEach((r, i) => { ctx.beginPath(); ctx.arc(F.X(i + 1), F.Y(Math.max(r, lo)), 3.2, 0, 7); ctx.fillStyle = withAlpha(green, 0.75); ctx.fill(); });
+      F.done();
+      haloLabel(ctx, bestTxt, F.R - 4, F.Y(best) - 9, css("--ink-3"), "right");
+      if (!R.length) haloLabel(ctx, "finish an episode to see its return here", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+      return;
+    }
+    if (method === "vi") {
+      const h1 = 170, h2 = 170, ctx = setupCanvas(cv, w, h1 + h2 + 4);
+      $("g-chart-title").textContent = "Value of the start, and the largest change in any value, by sweep";
+      $("g-chart-cap").textContent = "Top: V(S) after each sweep; dashed, the value it converges to, V*(S) at this γ. Bottom: the largest change in any cell's value (log scale); value iteration stops when it falls below 10⁻¹⁰ (dashed). Each sweep carries the rewards one more step back.";
+      const n = Math.max(deltas.length, 10), vs = vstarFor(gamma())[startS];
+      const ys = [0, ...starts];
+      let lo = Math.min(0, vs), hi = Math.max(0, vs); ys.forEach((v) => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+      const pad = Math.max(0.05, (hi - lo) * 0.1); lo -= pad; hi += pad;
+      const vcol = css("--value");
+      let F = frame(ctx, w, h1, { x: [0, n], y: [lo, hi], ylabel: "V(S)", margin: { t: 22, b: 24 } });
+      hline(ctx, F, vs, css("--ink-3"));
+      polyline(ctx, F, ys.map((_, i) => i), ys, vcol, 1.8);
+      ys.forEach((y, i) => { ctx.beginPath(); ctx.arc(F.X(i), F.Y(y), 2.2, 0, 7); ctx.fillStyle = vcol; ctx.fill(); });
+      F.done();
+      label(ctx, "Value of the start, V(S)", F.L + 2, 9, css("--ink-2"), "left", "middle", true);
+      haloLabel(ctx, `V*(S) = ${fmt(vs, 3)}`, F.R - 4, F.Y(vs) + (F.Y(vs) < F.T + 18 ? 11 : -9), css("--ink-3"), "right");
+      ctx.save(); ctx.translate(0, h1 + 4);
+      const ly = deltas.map((d) => Math.log10(Math.max(d, 1e-12)));
+      const top = Math.max(2, Math.ceil(Math.max(0, ...ly)));
+      F = frame(ctx, w, h2, { x: [0, n], y: [-12, top], yticks: niceTicks(-12, top, 5).filter((v) => Number.isInteger(v)), yfmt: pow10, xlabel: "sweep", ylabel: "largest change", margin: { t: 22 } });
+      polyline(ctx, F, deltas.map((_, i) => i + 1), ly, vcol, 1.8);
+      ly.forEach((y, i) => { ctx.beginPath(); ctx.arc(F.X(i + 1), F.Y(y), 2.2, 0, 7); ctx.fillStyle = vcol; ctx.fill(); });
+      hline(ctx, F, -10, css("--ink-3"));
+      F.done();
+      label(ctx, "Largest change in any value", F.L + 2, 9, css("--ink-2"), "left", "middle", true);
+      ctx.restore();
+      return;
+    }
+    const h1 = 220, h2 = 160, ctx = setupCanvas(cv, w, h1 + h2 + 4), mcol = methodColor();
+    $("g-chart-title").textContent = `Learning curves, ${methodName[method]} (${method === "q" ? "orange" : method === "mc" ? "green" : "blue"})`;
+    const A = series(returns), n = Math.max(returns.length, 20);
+    $("g-chart-cap").innerHTML = `Top: the sum of rewards of each episode while learning (thin${A.b > 1 ? `, averaged in bins of ${A.b}` : ""}) and the mean of the last ${A.W} (thick); dashed, the best policy's expected return. Learning curves include the exploration: an ε-greedy agent keeps taking random actions` +
+      (world === WORLDS.cliff ? ", and next to the cliff some of them are fatal. " : ". ") +
+      `Bottom: the loss, the mean over the episode's updates of the squared error (target − Q(s, a))², which each update shrinks by a factor (1 − η)² (log scale).`;
+    let lo = Math.min(0, best), hi = Math.max(best, world.step < -0.5 ? -10 : 1);
+    if (returns.length) { lo = Math.min(lo, A.lo); hi = Math.max(hi, A.hi); }
+    lo = Math.max(lo, world.floor);
+    if (hi - lo < 1e-6) hi = lo + 1;
+    let F = frame(ctx, w, h1, { x: [0, n], y: [lo, hi], ylabel: "sum of rewards", margin: { t: 22, b: 24 } });
+    hline(ctx, F, best, css("--ink-3"));
+    polyline(ctx, F, A.xs, A.thin.map((r) => Math.max(r, lo)), mcol, 1, null, 0.35);
+    polyline(ctx, F, A.xs, A.thick.map((r) => Math.max(r, lo)), mcol, 2.2);
+    F.done();
+    label(ctx, "Return per episode", F.L + 2, 9, css("--ink-2"), "left", "middle", true);
+    haloLabel(ctx, bestTxt, F.R - 4, F.Y(best) + (F.Y(best) < F.T + 18 ? 11 : -9), css("--ink-3"), "right");
+    // the loss
+    ctx.save(); ctx.translate(0, h1 + 4);
+    const Lr = series(losses);
+    const tl = Lr.thin.map((v) => Math.log10(Math.max(v, 1e-10))), tk = Lr.thick.map((v) => Math.log10(Math.max(v, 1e-10)));
+    let llo = Infinity, lhi = -Infinity; tl.forEach((v) => { llo = Math.min(llo, v); lhi = Math.max(lhi, v); });
+    if (!isFinite(llo)) { llo = -4; lhi = 0; }
+    lhi = Math.ceil(lhi); llo = Math.max(Math.floor(llo), lhi - 6); lhi = Math.max(llo + 2, lhi);   // at most six decades
+    const tlc = tl.map((v) => Math.max(v, llo)), tkc = tk.map((v) => Math.max(v, llo));
+    const lt = []; const st = lhi - llo > 6 ? 2 : 1; for (let v = llo; v <= lhi; v += st) lt.push(v);
+    F = frame(ctx, w, h2, { x: [0, n], y: [llo, lhi], yticks: lt, yfmt: pow10, xlabel: "episode", ylabel: "squared error", margin: { t: 22 } });
+    polyline(ctx, F, Lr.xs, tlc, mcol, 1, null, 0.35);
+    polyline(ctx, F, Lr.xs, tkc, mcol, 2.2);
+    F.done();
+    label(ctx, "Loss: squared error of the updates, per episode", F.L + 2, 9, css("--ink-2"), "left", "middle", true);
+    ctx.restore();
+  }
+  const cellName = (s) => { const [x, y] = xy(s); return `(${x + 1}, ${y + 1})`; };
+  function keyHint() {
+    const on = $("g-area").contains(document.activeElement);
+    const el = $("g-keyhint");
+    el.classList.toggle("on", on);
+    el.textContent = on ? "Keys on: arrow keys or W A S D move the agent." : "Click the grid to move with the arrow keys or W A S D, or use these buttons, or tap a cell next to the agent.";
+  }
+  function playText() {
+    const d = dec(), n = play.returns.length, R = play.returns;
+    const avg = n ? R.reduce((a, b) => a + b, 0) / n : null;
+    $("g-stats").innerHTML = `<span>episode <b>${n + 1}</b></span><span>step <b>${play.steps}</b></span>` +
+      `<span>last reward <b>${play.last ? fmtS(play.last.r, d) : "—"}</b></span><span>return so far <b>${fmt(play.ret, d)}</b></span>` +
+      `<span>episodes done <b>${n}</b></span><span>your average return <b>${avg === null ? "—" : fmt(avg, d)}</b></span>` +
+      `<span>best policy's average <b>${fmt(Vstar[startS], world.step < -0.5 ? 0 : 3)}</b></span>`;
+    let html = `<div>${world.note} You are the policy: you choose each move; the world's slips and rewards are its own. An episode ends at an exit${world === WORLDS.cliff ? ", the goal G" : ""}, and the next starts at S.</div>`;
+    const L = play.last;
+    if (L) {
+      const p = slipProb(L.a, L.b), pt = +p.toFixed(4);
+      const wentTxt = L.b === L.a ? `the move went ${ANAME[L.b]} (probability ${pt})` : `<b style="color:var(--bad)">it slipped ${ANAME[L.b]}</b> (probability ${pt})`;
+      const tr = L.done ? termR[L.s2] : null;
+      const endTxt = L.bump ? ", into the edge or a wall, so you stayed put" : L.fell !== null ? ", off the cliff, and back to S" :
+        L.done ? (tr > 0 ? `, onto the +${tr}` : tr < 0 ? `, ${world === WORLDS.pits ? "into a pit" : "onto the −1"}` : ", to the goal") : "";
+      html += `<div style="margin-top:4px">Last step, from ${cellName(L.s)}: you chose <b>${ANAME[L.a]}</b>; ${wentTxt}${endTxt}. Reward ${fmtS(L.r, d)}${L.done && tr ? ` (${fmtS(world.step, d)} for the step, ${fmtS(tr, 0)} for the exit)` : ""}.</div>`;
+    }
+    if (play.ended) html += `<div style="margin-top:4px"><b>Episode ${play.ended.n} ended</b> after ${play.ended.steps} step${play.ended.steps === 1 ? "" : "s"} with return ${fmt(play.ended.ret, d)}. Your next move starts episode ${n + 1} from S.</div>`;
+    if (play.log.length) {
+      const recent = play.log.slice(-10).map((e) => `${ANAME[e.a]}${e.b !== e.a ? "→" + ANAME[e.b] : ""} ${fmtS(e.r, d)}`).join(" · ");
+      html += `<div style="margin-top:4px">Your last moves (chosen→where a slip took you, reward): <span class="eq" style="white-space:normal">${recent}</span></div>`;
+    }
+    $("g-readout").innerHTML = html;
+  }
+  function updateText() {
+    if (mode === "play") { playText(); keyHint(); return; }
+    const st = $("g-stats");
+    if (method === "vi") {
+      st.innerHTML = `<span>sweeps <b>${sweeps}</b></span><span>largest change <b>${deltas.length ? deltas[deltas.length - 1].toExponential(1) : "—"}</b></span><span>start value <b>${fmt(V[startS], 3)}</b></span>`;
+    } else {
+      const last = returns.length ? returns[returns.length - 1] : null;
+      let m50 = null; if (returns.length) { let s = 0; const k = Math.min(50, returns.length); for (let i = returns.length - k; i < returns.length; i++) s += returns[i]; m50 = s / k; }
+      st.innerHTML = `<span>episodes <b>${returns.length.toLocaleString("en-US")}</b></span><span>steps <b>${totalSteps.toLocaleString("en-US")}</b></span><span>last return <b>${last === null ? "—" : fmt(last, dec())}</b></span><span>mean of last 50 <b>${m50 === null ? "—" : fmt(m50, world.step < -0.5 ? 1 : 2)}</b></span>`;
+    }
+    let html = `<div>${world.note} Cells are numbered (column, row) from S at (1, 1); click one to see its numbers.</div>`;
+    if (method === "vi") {
+      html += `<div class="eq">V(s) ← max<sub>a</sub> Σ<sub>s′</sub> p(s′|s,a) [ r + γ V(s′) ]</div>`;
+    } else if (method === "q") {
+      html += `<div class="eq">Q(s,a) ← Q(s,a) + η [ r + γ max<sub>a′</sub> Q(s′,a′) − Q(s,a) ]   (learns about the greedy policy)</div>`;
+    } else if (method === "sarsa") {
+      html += `<div class="eq">Q(s,a) ← Q(s,a) + η [ r + γ Q(s′,a′) − Q(s,a) ],  a′ the action it will take   (learns about the ε-greedy policy it follows)</div>`;
+    } else {
+      html += `<div class="eq">after the episode, for every step t:  Q(sₜ,aₜ) ← Q(sₜ,aₜ) + η [ Gₜ − Q(sₜ,aₜ) ],  Gₜ = rₜ₊₁ + γ Gₜ₊₁   (learns about the ε-greedy policy it follows)</div>`;
+    }
+    if ((method === "q" || method === "sarsa") && lastUpdate && !lastUpdate.mc) {
+      const u = lastUpdate;
+      const bootTxt = u.done ? "0 (the episode ended)" : method === "q" ? `max Q${cellName(u.s2)} = ${fmt(u.boot, 3)}` : `Q(${cellName(u.s2)}, ${ANAME[u.nextA]}) = ${fmt(u.boot, 3)}`;
+      html += `<div style="margin-top:4px">Last step: in ${cellName(u.s)} it went <b>${ANAME[u.a]}</b>${u.cliff ? ", fell off the cliff," : ""} and got r = ${fmt(u.r, 2)}; bootstrap ${bootTxt}.<br>` +
+        `<span class="eq">Q(${cellName(u.s)}, ${ANAME[u.a]}): ${fmt(u.old, 3)} + ${u.al} × (${fmt(u.r, 2)} + ${u.g} × ${fmt(u.done ? 0 : u.boot, 3)} − ${fmt(u.old, 3)}) = ${fmt(u.now, 3)}</span></div>`;
+    }
+    if (method === "mc") {
+      if (lastStep && epSteps > 0) html += `<div style="margin-top:4px">This episode so far: ${epSteps} step${epSteps === 1 ? "" : "s"}, return ${fmt(epReturn, dec())}. Last step: in ${cellName(lastStep.s)} it went <b>${ANAME[lastStep.a]}</b>${lastStep.cliff ? ", fell off the cliff," : ""} and got r = ${fmt(lastStep.r, 2)}. Monte Carlo changes nothing until the episode ends. Its targets, whole returns, are noisier than TD's, so it needs a smaller step size: η = 0.02 to start.</div>`;
+      if (lastUpdate && lastUpdate.mc) {
+        const u = lastUpdate, f = u.first;
+        html += `<div style="margin-top:4px">At the end of the last episode (${u.T} step${u.T === 1 ? "" : "s"}${u.cut ? ", cut at 1,000" : ""}, return ${fmt(u.ret, dec())}), Monte Carlo moved each of its ${u.T} visited Q(s, a) toward the return that followed that visit. The update for the first step, from S, which uses the whole return:<br>` +
+          `<span class="eq">Q(${cellName(f.s)}, ${ANAME[f.a]}): ${fmt(f.old, 3)} + ${u.al} × (${fmt(f.G, 3)} − ${fmt(f.old, 3)}) = ${fmt(f.now, 3)}</span></div>`;
+      }
+    }
+    if (selected !== null && isState(selected)) {
+      const q = actionValues(selected);
+      html += `<div style="margin-top:4px">Cell ${cellName(selected)}: ` +
+        (method === "vi" ? `V = ${fmt(V[selected], 3)}; one-step look-ahead per action: ` : `action values: `) +
+        q.map((v, a) => `${ANAME[a]} ${fmt(v, 3)}`).join(", ") + `.</div>`;
+    }
+    $("g-readout").innerHTML = html;
+  }
+  function render() { drawGrid(); drawChart(); updateText(); }
+  onRedraw(render);
+
+  // --- controls
+  function syncVisibility() {
+    const w = mode === "watch";
+    document.querySelectorAll("#gridworld .watch-only").forEach((e) => (e.hidden = !w));
+    document.querySelectorAll("#gridworld .play-only").forEach((e) => (e.hidden = w));
+    document.querySelectorAll("#gridworld .learn-only").forEach((e) => (e.hidden = !w || method === "vi"));
+    document.querySelectorAll("#gridworld .vi-only").forEach((e) => (e.hidden = !w || method !== "vi"));
+    $("g-mode-play").setAttribute("aria-pressed", !w); $("g-mode-watch").setAttribute("aria-pressed", w);
+    $("g-area").classList.toggle("playing", !w);
+    $("g-canvas").setAttribute("aria-label", w ? "The gridworld" : "The gridworld; with the grid focused, the arrow keys move the agent");
+  }
+  function setView(v) { view = v; $("g-view-v").setAttribute("aria-pressed", v === "v"); $("g-view-q").setAttribute("aria-pressed", v === "q"); render(); }
+  function stopAll() {
+    running = null; viPlaying = false;
+    $("g-play").textContent = "Run"; $("g-ff").textContent = "Fast-forward"; $("g-play-vi").textContent = "Sweep to convergence";
+  }
+  function setWorld(name) {
+    stopAll(); buildWorld(name);
+    $("g-alpha").value = method === "mc" ? world.alphaMC : world.alpha; $("g-eps").value = world.eps; $("g-gamma").value = world.gamma;
+    selected = null; resetValues(); resetLearn(); resetPlay(); syncLabels(); render();
+  }
+  const SPEEDS = [2, 5, 15, 60, 300, 1200, 6000, 30000];      // steps per second
+  function syncLabels() {
+    $("g-gamma-v").textContent = (+$("g-gamma").value).toFixed(2);
+    $("g-eps-v").textContent = (+$("g-eps").value).toFixed(2);
+    $("g-alpha-v").textContent = (+$("g-alpha").value).toFixed(2);
+    $("g-speed-v").textContent = SPEEDS[+$("g-speed").value].toLocaleString("en-US") + " steps/s";
+  }
+  function setMode(m) {
+    stopAll(); mode = m; syncVisibility(); render();
+    if (m === "play") $("g-canvas").focus({ preventScroll: true });
+  }
+  $("g-mode-play").addEventListener("click", () => setMode("play"));
+  $("g-mode-watch").addEventListener("click", () => setMode("watch"));
+  $("g-world").addEventListener("change", (e) => { setWorld(e.target.value); if (mode === "play") $("g-canvas").focus({ preventScroll: true }); });
+  $("g-method").addEventListener("change", (e) => {
+    stopAll();
+    const was = method; method = e.target.value;
+    if (method === "mc" && was !== "mc") $("g-alpha").value = world.alphaMC;
+    else if (method !== "mc" && was === "mc") $("g-alpha").value = world.alpha;
+    syncLabels(); syncVisibility(); resetValues(); resetLearn();
+    setView(method === "vi" ? "v" : "q");
+  });
+  $("g-gamma").addEventListener("input", () => { syncLabels(); if (method === "vi") { resetValues(); } render(); });
+  ["g-eps", "g-alpha", "g-speed"].forEach((id) => $(id).addEventListener("input", syncLabels));
+  $("g-view-v").addEventListener("click", () => setView("v"));
+  $("g-view-q").addEventListener("click", () => setView("q"));
+  $("g-sweep").addEventListener("click", () => { stopAll(); sweep(); render(); });
+  $("g-reset-vi").addEventListener("click", () => { stopAll(); resetValues(); render(); });
+  $("g-jump-vi").addEventListener("click", () => { stopAll(); let d = Infinity; while (d >= 1e-10 && sweeps < 5000) d = sweep(); render(); });
+  $("g-play-vi").addEventListener("click", () => {
+    if (viPlaying) { stopAll(); return; }
+    stopAll(); viPlaying = true; $("g-play-vi").textContent = "Pause";
+    const tick = () => {
+      if (!viPlaying) return;
+      const d = sweep(); render();
+      if (d < 1e-10 || sweeps > 2000) { stopAll(); render(); return; }
+      setTimeout(tick, sweeps < 12 ? 260 : 60);
+    };
+    tick();
+  });
+  $("g-step").addEventListener("click", () => { stopAll(); learnStep(); render(); });
+  $("g-episode").addEventListener("click", () => { stopAll(); runEpisode(); render(); });
+  $("g-100").addEventListener("click", () => { stopAll(); for (let i = 0; i < 100; i++) runEpisode(i === 99); render(); });
+  $("g-reset").addEventListener("click", () => { stopAll(); resetLearn(); render(); });
+  function loop(kind) {
+    const was = running; stopAll(); if (was === kind) { render(); return; }
+    running = kind; $(kind === "run" ? "g-play" : "g-ff").textContent = "Pause";
+    let last = performance.now(), carry = 0;
+    const tick = (now) => {
+      if (running !== kind) return;
+      if (kind === "ff") {                   // as fast as the browser allows, drawing once a frame
+        const t0 = performance.now(); let k = 0;
+        do { for (let i = 0; i < 199; i++) learnStep(false); learnStep(true); k += 200; } while (performance.now() - t0 < 12 && k < 20000);
+      } else {                               // the chosen number of steps per second, so each move can be watched
+        const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+        carry += SPEEDS[+$("g-speed").value] * dt;
+        const k = Math.floor(carry); carry -= k;
+        for (let i = 0; i < k; i++) learnStep(i === k - 1);
+        if (k === 0) { requestAnimationFrame(tick); return; }
+      }
+      render(); requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  $("g-play").addEventListener("click", () => loop("run"));
+  $("g-ff").addEventListener("click", () => loop("ff"));
+  // playing: keys while the grid or its buttons have focus, the on-screen pad, or a tap on a neighboring cell
+  const KEYS = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3, w: 0, d: 1, s: 2, a: 3, W: 0, D: 1, S: 2, A: 3 };
+  $("g-area").addEventListener("keydown", (e) => {
+    if (mode !== "play" || e.altKey || e.ctrlKey || e.metaKey) return;
+    const a = KEYS[e.key]; if (a === undefined) return;
+    e.preventDefault(); playMove(a); render();
+  });
+  ["focusin", "focusout"].forEach((ev) => $("g-area").addEventListener(ev, () => setTimeout(() => { if (mode === "play") keyHint(); }, 0)));
+  document.querySelectorAll("#g-area .pad button").forEach((b) => b.addEventListener("click", () => { playMove(+b.dataset.a); render(); }));
+  $("g-hint").addEventListener("change", (e) => { hint = e.target.checked; render(); $("g-canvas").focus({ preventScroll: true }); });
+  $("g-play-reset").addEventListener("click", () => { resetPlay(); render(); $("g-canvas").focus({ preventScroll: true }); });
+  $("g-canvas").addEventListener("click", (e) => {
+    const r = $("g-canvas").getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left - 1) / cell), y = Hd - 1 - Math.floor((e.clientY - r.top - 1) / cell);
+    if (!(x >= 0 && x < Wd && y >= 0 && y < Hd)) return;
+    if (mode === "play") {
+      const [ax, ay] = xy(play.s), dx = x - ax, dy = y - ay;
+      const a = ACT.findIndex(([u, v]) => u === dx && v === dy);
+      if (a >= 0) { playMove(a); render(); }
+      return;
+    }
+    selected = key(x, y); render();
+  });
+
+  // start: the 4 x 3 world after 5 sweeps of value iteration, so the page opens with values on it
+  buildWorld("w43"); resetValues(); resetLearn(); resetPlay(); syncVisibility(); syncLabels();
+  for (let i = 0; i < 5; i++) sweep();
+  render();
+})();
+
+/* ------------------------------------------------------------------ 3. bandit */
+(function bandit() {
+  const RULES = [
+    { id: "greedy", name: "greedy", color: "--c-greedy" },
+    { id: "eps", name: "ε-greedy", color: "--c-eps" },
+    { id: "ucb", name: "UCB1 (optimism)", color: "--c-ucb" },
+    { id: "ts", name: "Thompson sampling", color: "--c-ts" },
+    { id: "grad", name: "gradient bandit (REINFORCE)", color: "--c-grad" },
+  ];
+  const on = { greedy: true, eps: true, ucb: true, ts: true, grad: true };
+  let fam = "bern", arms = [], results = {}, seedBase = 0, running = false;
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const sdOf = (p) => Math.max(0.05, Math.round(Math.sqrt(p * (1 - p)) * 20) / 20);
+  function makeGauss(r) {                      // Box-Muller, one spare kept
+    let spare = null;
+    return () => {
+      if (spare !== null) { const g = spare; spare = null; return g; }
+      let u = 0; while (u === 0) u = r(); const v = r(), m = Math.sqrt(-2 * Math.log(u));
+      spare = m * Math.sin(2 * Math.PI * v); return m * Math.cos(2 * Math.PI * v);
+    };
+  }
+  function gammaS(a, r, g) {                   // Marsaglia and Tsang, a >= 1
+    const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+      let x, v;
+      do { x = g(); v = 1 + c * x; } while (v <= 0);
+      v = v * v * v; const u = r();
+      if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+  function drawArms(k, seed) {
+    const r = mulberry32(seed); const m = [];
+    for (let i = 0; i < k; i++) m.push(+(0.1 + 0.8 * r()).toFixed(2));
+    return m;
+  }
+  const bernArm = (p) => ({ p, mu: p, sd: sdOf(p) });
+  const PRESETS = {
+    notes: () => ["bern", [0.7, 0.4].map(bernArm)],
+    bern5: () => ["bern", drawArms(5, 7).map(bernArm)],
+    bern10: () => ["bern", drawArms(10, 7).map(bernArm)],
+    gauss10: () => { const g = makeGauss(mulberry32(2018)); return ["gauss", Array.from({ length: 10 }, () => ({ p: 0.5, mu: r2(g()), sd: 1 }))]; },
+  };
+  const means = () => arms.map((a) => (fam === "bern" ? a.p : a.mu));
+  const sdv = () => arms.map((a) => (fam === "bern" ? Math.sqrt(a.p * (1 - a.p)) : a.sd));
+  const blind = () => $("b-blind").checked;
+  const isNotes = () => fam === "bern" && arms.length === 2 && arms[0].p === 0.7 && arms[1].p === 0.4;
+  const randArm = () => (fam === "bern" ? bernArm(r2(0.05 + 0.9 * Math.random())) : { p: 0.5, mu: r2(makeGauss(Math.random)()), sd: Math.round((0.5 + Math.random()) * 20) / 20 });
+
+  // --- the arm editor
+  function row(i, f, sym, lo, hi, step, v, aria) {
+    const lim = f === "p" ? ' min="0" max="1"' : f === "sd" ? ' min="0.01"' : "";
+    return `<div class="armrow"><span>${sym}</span><input type="range" data-i="${i}" data-f="${f}" min="${lo}" max="${hi}" step="${step}" value="${v}" aria-label="${aria}">` +
+      `<input type="number" data-i="${i}" data-f="${f}" step="0.01"${lim} value="${v}" aria-label="${aria}"></div>`;
+  }
+  function renderEditor() {
+    $("b-editor").innerHTML = arms.map((a, i) => `<div class="armcard"><div class="h">Arm ${i + 1}</div>` +
+      (fam === "bern" ? row(i, "p", "p", 0, 1, 0.01, a.p, `Arm ${i + 1}: chance of a reward of 1`)
+        : row(i, "mu", "μ", -3, 3, 0.05, a.mu, `Arm ${i + 1}: mean`) + row(i, "sd", "σ", 0.05, 3, 0.05, a.sd, `Arm ${i + 1}: standard deviation`)) + `</div>`).join("");
+  }
+  function setField(i, f, v, src) {
+    v = r2(f === "p" ? clamp(v, 0, 1) : f === "sd" ? clamp(v, 0.01, 100) : clamp(v, -100, 100));
+    arms[i][f] = v;
+    $("b-editor").querySelectorAll(`input[data-i="${i}"][data-f="${f}"]`).forEach((el) => { if (el !== src || el.type === "number") el.value = v; });
+    $("b-arms").value = "custom";
+    armsChanged(false);
+  }
+  $("b-editor").addEventListener("input", (e) => { const t = e.target; if (t.type === "range") setField(+t.dataset.i, t.dataset.f, +t.value, t); });
+  $("b-editor").addEventListener("change", (e) => {
+    const t = e.target; if (t.type !== "number") return;
+    const v = parseFloat(t.value);
+    if (!isFinite(v)) { t.value = arms[+t.dataset.i][t.dataset.f]; return; }
+    setField(+t.dataset.i, t.dataset.f, v, t);
+  });
+  function syncArmControls() {
+    $("b-k").value = arms.length; $("b-k-v").textContent = arms.length;
+    $("b-fam-bern").setAttribute("aria-pressed", fam === "bern"); $("b-fam-gauss").setAttribute("aria-pressed", fam === "gauss");
+    $("b-editor").hidden = blind();
+    $("b-editor-note").textContent = blind() ? "The arms' settings are hidden while you play blind; uncheck “Play blind” below to see them."
+      : fam === "bern" ? "Each arm pays 1 with its chance p and 0 otherwise, so its mean is p."
+      : "Each arm pays a reward drawn from a normal distribution with mean μ and standard deviation σ. Thompson sampling is told the σ's (known variances).";
+  }
+  function armsChanged(rebuild) {
+    if (rebuild) renderEditor();
+    resetMe(); renderButtons(); syncArmControls(); schedule();
+  }
+  $("b-arms").addEventListener("change", (e) => {
+    if (e.target.value === "custom") return;
+    [fam, arms] = PRESETS[e.target.value](); armsChanged(true);
+  });
+  $("b-k").addEventListener("input", (e) => {
+    const k = +e.target.value;
+    while (arms.length < k) arms.push(randArm());
+    arms = arms.slice(0, k); $("b-arms").value = "custom"; armsChanged(true);
+  });
+  function setFam(f) {
+    if (f === fam) return;
+    if (f === "gauss") arms.forEach((a) => { a.mu = a.p; a.sd = sdOf(a.p); });
+    else {
+      const ms = arms.map((a) => a.mu), lo = Math.min(...ms), hi = Math.max(...ms);
+      arms.forEach((a) => { a.p = lo >= 0 && hi <= 1 ? a.mu : hi > lo ? r2(0.1 + 0.8 * (a.mu - lo) / (hi - lo)) : 0.5; });
+    }
+    fam = f; $("b-arms").value = "custom"; armsChanged(true);
+  }
+  $("b-fam-bern").addEventListener("click", () => setFam("bern"));
+  $("b-fam-gauss").addEventListener("click", () => setFam("gauss"));
+  $("b-rand").addEventListener("click", () => { arms = arms.map(randArm); $("b-arms").value = "custom"; armsChanged(true); });
+
+  // --- playing by hand
+  const me = {};
+  const meGauss = makeGauss(Math.random);
+  function resetMe() { const k = arms.length; Object.assign(me, { n: new Array(k).fill(0), s: new Array(k).fill(0), pulls: 0, total: 0, regret: 0, hist: [0], bestPulls: 0, last: null }); }
+  function renderButtons() {
+    $("b-buttons").innerHTML = arms.map((_, i) => `<button class="armbtn" data-i="${i}"><span class="an">Arm ${i + 1}</span><span class="ar"></span><span class="meta"></span><span class="meta truth"></span></button>`).join("");
+    updateButtons();
+  }
+  function updateButtons() {
+    const mus = means(), mx = Math.max(...mus), hide = blind();
+    [...$("b-buttons").children].forEach((b, i) => {
+      const n = me.n[i], avg = n ? me.s[i] / n : null, last = me.last && me.last.i === i ? me.last.r : null;
+      const ar = b.querySelector(".ar");
+      ar.textContent = last === null ? "" : fam === "bern" ? String(last) : fmt(last, 2);
+      ar.style.color = last !== null && last > 0 ? "var(--reward)" : "var(--ink-3)";
+      b.querySelector(".meta").textContent = `${n} pull${n === 1 ? "" : "s"} · avg ${avg === null ? "—" : fmt(avg, 2)}`;
+      b.querySelector(".truth").innerHTML = hide ? "" : fam === "bern" ? `p = ${arms[i].p.toFixed(2)}` : `μ = ${fmt(arms[i].mu, 2)}<br>σ = ${arms[i].sd.toFixed(2)}`;
+      b.classList.toggle("best", !hide && mx - mus[i] < 1e-12);
+      b.setAttribute("aria-label", `Pull arm ${i + 1}: ${n} pulls so far, average ${avg === null ? "none" : avg.toFixed(2)}`);
+    });
+  }
+  function pull(i) {
+    const mus = means(), mx = Math.max(...mus);
+    const rew = fam === "bern" ? (Math.random() < arms[i].p ? 1 : 0) : arms[i].mu + arms[i].sd * meGauss();
+    me.n[i]++; me.s[i] += rew; me.pulls++; me.total += rew; me.regret += mx - mus[i]; me.hist.push(me.regret);
+    if (mx - mus[i] < 1e-12) me.bestPulls++;
+    me.last = { i, r: rew };
+    updateButtons(); meText(); drawYou();
+    const b = $("b-buttons").children[i];
+    b.classList.remove("flash", "flash0"); void b.offsetWidth; b.classList.add(rew > 0 ? "flash" : "flash0");
+  }
+  $("b-buttons").addEventListener("click", (e) => { const b = e.target.closest(".armbtn"); if (b) pull(+b.dataset.i); });
+  $("b-playarea").addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || !/^[0-9]$/.test(e.key) || e.target.closest("input")) return;
+    const i = e.key === "0" ? 9 : +e.key - 1;
+    if (i < arms.length) { e.preventDefault(); pull(i); }
+  });
+  $("b-me-reset").addEventListener("click", () => { resetMe(); updateButtons(); meText(); drawYou(); });
+  $("b-blind").addEventListener("change", () => { syncArmControls(); updateButtons(); drawAll(); });
+
+  // --- the rules, many runs each
+  function params() { return { eps: +$("b-eps").value, c: +$("b-c").value, alpha: +$("b-alpha").value, base: $("b-base").checked, T: +$("b-T").value, R: +$("b-R").value }; }
+  const settingsKey = () => { const P = params(); return JSON.stringify([fam, means(), sdv(), P.T, P.R, seedBase]); };
+  const ruleKey = (id) => { const P = params(); return id === "eps" ? String(P.eps) : id === "ucb" ? String(P.c) : id === "grad" ? P.alpha + ":" + P.base : ""; };
+  const fresh = (id) => !!results[id] && results[id].skey === settingsKey() && results[id].rkey === ruleKey(id);
+  const shortName = (M, res) => {
+    const p = res ? res.P : params();
+    return M.id === "ucb" ? (p.c === 1 ? "UCB1" : `UCB, c = ${p.c}`) : M.id === "ts" ? "Thompson" : M.id === "grad" ? "gradient" : M.name;
+  };
+  function oneRun(id, P, A, seed, acc) {
+    const r = mulberry32(seed), g = makeGauss(r), k = A.k, T = P.T, mus = A.mus, sds = A.sds, bern = A.bern;
+    const n = new Float64Array(k), sum = new Float64Array(k), H = new Float64Array(k), e = new Float64Array(k), sc = new Float64Array(k);
+    const order = new Int32Array(k), tie = new Int32Array(k);
+    for (let i = 0; i < k; i++) order[i] = i;
+    for (let i = k - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t; }
+    const isGrad = id === "grad", isTS = id === "ts", isUCB = id === "ucb", isEps = id === "eps";
+    const forced = isGrad || (isTS && bern) ? 0 : k;            // one pull of each arm first (Thompson with Beta priors needs none)
+    const lateFrom = T - Math.min(100, T);
+    let rbar = 0, reg = 0, late = 0;
+    for (let t = 0; t < T; t++) {
+      let a;
+      if (isGrad) {
+        let mx = -Infinity; for (let i = 0; i < k; i++) if (H[i] > mx) mx = H[i];
+        let z = 0; for (let i = 0; i < k; i++) { e[i] = Math.exp(H[i] - mx); z += e[i]; }
+        let u = r() * z; a = 0; while (a < k - 1 && u >= e[a]) { u -= e[a]; a++; }
+        for (let i = 0; i < k; i++) e[i] /= z;                  // the policy pi
+      } else if (t < forced) a = order[t];
+      else if (isEps && r() < P.eps) a = Math.floor(r() * k);
+      else {
+        if (isTS) {
+          if (bern) for (let i = 0; i < k; i++) { const x = gammaS(1 + sum[i], r, g), y = gammaS(1 + n[i] - sum[i], r, g); sc[i] = x / (x + y); }
+          else for (let i = 0; i < k; i++) sc[i] = sum[i] / n[i] + sds[i] / Math.sqrt(n[i]) * g();
+        } else if (isUCB) { const lt = 2 * Math.log(t + 1); for (let i = 0; i < k; i++) sc[i] = sum[i] / n[i] + P.c * Math.sqrt(lt / n[i]); }
+        else for (let i = 0; i < k; i++) sc[i] = sum[i] / n[i];
+        let m = -Infinity, c = 0;                               // argmax, ties broken at random
+        for (let i = 0; i < k; i++) { const v = sc[i]; if (v > m + 1e-12) { m = v; c = 0; tie[c++] = i; } else if (v >= m - 1e-12) tie[c++] = i; }
+        a = c === 1 ? tie[0] : tie[Math.floor(r() * c)];
+      }
+      const rew = bern ? (r() < mus[a] ? 1 : 0) : mus[a] + sds[a] * g();
+      n[a]++; sum[a] += rew;
+      if (isGrad) {
+        if (P.base) rbar += (rew - rbar) / (t + 1);             // the average reward so far, this one included, as in the notes
+        const d = P.alpha * (rew - (P.base ? rbar : 0));
+        for (let i = 0; i < k - 1; i++) H[i] += d * ((i === a ? 1 : 0) - e[i]);   // the last arm's preference stays 0
+      }
+      acc.rew[t] += rew;
+      if (A.isBest[a]) { acc.best[t]++; if (t >= lateFrom) late++; }
+      reg += A.muStar - mus[a]; acc.regret[t] += reg;
+    }
+    const lateN = T - lateFrom;
+    if (late < lateN / 2) acc.stuck++;
+    acc.late += late / lateN;
+  }
+  function smoothA(a, hw) {                    // centered moving average, narrower near the start
+    const n = a.length, pre = new Float64Array(n + 1), out = new Float64Array(n);
+    for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + a[i];
+    for (let i = 0; i < n; i++) { const h = Math.min(hw, Math.floor(i / 10)), lo = Math.max(0, i - h), hi = Math.min(n, i + h + 1); out[i] = (pre[hi] - pre[lo]) / (hi - lo); }
+    return out;
+  }
+  function finalize(acc, P, skey, rkey) {
+    const R = P.R, T = P.T, f = (v) => v / R;
+    const rew = Float64Array.from(acc.rew, f), best = Float64Array.from(acc.best, f), regret = Float64Array.from(acc.regret, f);
+    const hw = Math.max(1, Math.round(T / 250));
+    let tot = 0; for (let t = 0; t < T; t++) tot += rew[t];
+    return { T, R, P, skey, rkey, rew, best, regret, rewS: smoothA(rew, hw), bestS: smoothA(best, hw), stuck: acc.stuck / R, late: acc.late / R, avgRew: tot / T };
+  }
+  let job = 0, timer = null, status = "";
+  function schedule(delay = 350) { job++; running = false; clearTimeout(timer); timer = setTimeout(run, delay); drawAll(); }
+  function run() {
+    clearTimeout(timer);
+    const my = ++job, P = params(), skey = settingsKey();
+    const rkeys = {}; RULES.forEach((M) => (rkeys[M.id] = ruleKey(M.id)));
+    const mus = means(), sds = sdv(), muStar = Math.max(...mus);
+    const A = { k: mus.length, mus: Float64Array.from(mus), sds: Float64Array.from(sds), bern: fam === "bern", muStar, isBest: mus.map((m) => muStar - m < 1e-12) };
+    const queue = RULES.filter((M) => on[M.id] && !fresh(M.id));
+    if (!queue.length) { running = false; drawAll(); return; }
+    let qi = 0, runI = 0, acc = null; running = true;
+    const step = () => {
+      if (my !== job) return;
+      const M = queue[qi], idx = RULES.indexOf(M);
+      if (!acc) acc = { rew: new Float64Array(P.T), best: new Float64Array(P.T), regret: new Float64Array(P.T), stuck: 0, late: 0 };
+      const t0 = performance.now();
+      while (runI < P.R && performance.now() - t0 < 30) { oneRun(M.id, P, A, (seedBase * 1000003 + idx * 7919 + runI * 104729 + 12345) >>> 0, acc); runI++; }
+      if (runI >= P.R) {
+        results[M.id] = finalize(acc, P, skey, rkeys[M.id]);
+        acc = null; runI = 0; qi++;
+        if (qi >= queue.length) { running = false; drawAll(); return; }
+        drawAll();
+      }
+      const Mn = queue[qi];
+      status = `Running ${P.R.toLocaleString("en-US")} runs of ${P.T.toLocaleString("en-US")} pulls: ${Mn.name}, ${runI.toLocaleString("en-US")} runs done…`;
+      $("b-readout").textContent = status;
+      setTimeout(step, 0);
+    };
+    status = `Running ${P.R.toLocaleString("en-US")} runs of ${P.T.toLocaleString("en-US")} pulls…`;
+    $("b-readout").textContent = status;
+    setTimeout(step, 0);
+  }
+
+  // --- drawing
+  const visible = () => RULES.filter((M) => on[M.id] && results[M.id]);
+  function sampleIdx(T, log) {
+    const out = [];
+    if (!log) { const b = Math.max(1, Math.ceil(T / 1200)); for (let i = 0; i < T; i += b) out.push(i); if (out[out.length - 1] !== T - 1) out.push(T - 1); }
+    else { let last = -1; for (let j = 0; j <= 1200; j++) { const i = Math.round(Math.pow(T, j / 1200)) - 1; if (i > last) { out.push(i); last = i; } } }
+    return out;
+  }
+  function endLabels(ctx, F, items) {          // a name at the end of every line, pushed apart so none overlap
+    items.sort((a, b) => a.y - b.y);
+    const gap = 13, top = F.T + 5, bot = F.B - 5;
+    for (let i = 0; i < items.length; i++) items[i].y = Math.max(clamp(items[i].y, top, bot), i ? items[i - 1].y + gap : top);
+    for (let i = items.length - 1; i >= 0; i--) { const lim = i < items.length - 1 ? items[i + 1].y - gap : bot; if (items[i].y > lim) items[i].y = lim; }
+    items.forEach((it) => haloLabel(ctx, it.text, F.R + 6, it.y, it.color, "left"));
+  }
+  function lineChart(cvId, pick, o) {
+    const cv = $(cvId), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h);
+    const log = $("b-log").checked, vis = visible();
+    const T = vis.length ? Math.max(...vis.map((M) => results[M.id].T)) : +$("b-T").value;
+    const lines = vis.map((M) => {
+      const res = results[M.id], ys = pick(res), idx = sampleIdx(res.T, log);
+      return { M, res, xs: idx.map((i) => (log ? Math.log10(i + 1) : i + 1)), ys: idx.map((i) => ys[i]) };
+    });
+    const xo = log ? { x: [0, Math.log10(T)], xticks: [0, 1, 2, 3, 4].filter((v) => v <= Math.log10(T) + 1e-9), xfmt: (v) => tickLabel(Math.round(10 ** v)) } : { x: [0, T] };
+    const F = frame(ctx, w, h, Object.assign({ y: o.range(lines), xlabel: log ? "pull (log scale)" : "pull", ylabel: o.ylabel, margin: { r: 84 } }, xo, o.frame || {}));
+    if (o.before) o.before(ctx, F);
+    const ends = [];
+    lines.forEach(({ M, res, xs, ys }) => {
+      const stale = !fresh(M.id);
+      polyline(ctx, F, xs, ys, css(M.color), 1.8, null, stale ? 0.3 : 1);
+      ends.push({ y: F.Y(ys[ys.length - 1]), text: shortName(M, res), color: css(M.color) });
+    });
+    F.done();
+    if (o.after) o.after(ctx, F);
+    endLabels(ctx, F, ends);
+    if (!lines.length) haloLabel(ctx, running ? "running…" : "no rule selected", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+  }
+  function drawCharts() {
+    const mus = means(), muStar = Math.max(...mus), muMin = Math.min(...mus);
+    lineChart("b-reward", (r) => r.rewS, {
+      ylabel: "average reward",
+      range: (lines) => {
+        let lo = lines.length ? Infinity : muMin, hi = muStar;
+        lines.forEach((l) => l.ys.forEach((v) => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+        lo = Math.min(lo, muStar);
+        const pad = Math.max(0.02, (hi - lo) * 0.08); return [lo - pad, hi + pad];
+      },
+      before: (ctx, F) => { ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = css("--reward"); ctx.beginPath(); ctx.moveTo(F.L, F.Y(muStar)); ctx.lineTo(F.R, F.Y(muStar)); ctx.stroke(); ctx.restore(); },
+      after: (ctx, F) => haloLabel(ctx, blind() ? "best arm's mean" : `best arm's mean, ${fmt(muStar, 2)}`, F.L + 6, F.Y(muStar) - 9, css("--reward")),
+    });
+    lineChart("b-best", (r) => r.bestS, {
+      ylabel: "best arm", range: () => [0, 1],
+      frame: { yticks: [0, 0.25, 0.5, 0.75, 1], yfmt: (v) => Math.round(v * 100) + "%" },
+    });
+    lineChart("b-regret", (r) => r.regret, {
+      ylabel: "regret",
+      range: (lines) => { let top = 1; lines.forEach((l) => (top = Math.max(top, l.ys[l.ys.length - 1]))); return [0, top * 1.05]; },
+    });
+  }
+  function drawArmsPlot() {
+    const cv = $("b-armsplot"), w = widthOf(cv), h = 180, ctx = setupCanvas(cv, w, h), k = arms.length;
+    const mus = means(), sds = sdv(), mx = Math.max(...mus), hide = blind();
+    const xt = Array.from({ length: k }, (_, i) => i + 1);
+    const pos = css("--reward"), neu = css("--neutral"), ink2 = css("--ink-2");
+    if (fam === "bern") {
+      const F = frame(ctx, w, h, { x: [0.4, k + 0.6], y: [0, 1], xticks: xt, yticks: [0, 0.5, 1], xlabel: "arm", ylabel: "chance of 1", margin: { t: 20, b: 36 } });
+      const bw = Math.min(28, (F.R - F.L) / k * 0.6);
+      if (!hide) mus.forEach((m, i) => { ctx.fillStyle = mx - m < 1e-12 ? pos : withAlpha(neu, 0.55); ctx.fillRect(F.X(i + 1) - bw / 2, F.Y(m), bw, F.Y(0) - F.Y(m)); });
+      F.done();
+      if (!hide) mus.forEach((m, i) => haloLabel(ctx, m.toFixed(2), F.X(i + 1), F.Y(m) - 8, ink2, "center"));
+      else haloLabel(ctx, "hidden while you play blind", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+      $("b-arms-cap").textContent = "Each bar: an arm's chance of paying 1, which is its mean. Green: the best arm.";
+      return;
+    }
+    let lo = Infinity, hi = -Infinity; mus.forEach((m, i) => { lo = Math.min(lo, m - 2 * sds[i]); hi = Math.max(hi, m + 2 * sds[i]); });
+    const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+    const F = frame(ctx, w, h, { x: [0.4, k + 0.6], y: [lo, hi], xticks: xt, xlabel: "arm", ylabel: "reward", margin: { t: 20, b: 36 } });
+    if (!hide) {
+      ctx.save(); ctx.strokeStyle = css("--rule-2"); ctx.beginPath(); ctx.moveTo(F.L, F.Y(0)); ctx.lineTo(F.R, F.Y(0)); ctx.stroke(); ctx.restore();
+      mus.forEach((m, i) => {
+        const c = mx - m < 1e-12 ? pos : neu, x = F.X(i + 1);
+        ctx.save(); ctx.strokeStyle = withAlpha(c, 0.6); ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x, F.Y(m - 2 * sds[i])); ctx.lineTo(x, F.Y(m + 2 * sds[i])); ctx.stroke();
+        ctx.lineWidth = 7; ctx.strokeStyle = withAlpha(c, 0.5); ctx.beginPath(); ctx.moveTo(x, F.Y(m - sds[i])); ctx.lineTo(x, F.Y(m + sds[i])); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, F.Y(m), 4, 0, 7); ctx.fillStyle = c; ctx.fill(); ctx.restore();
+      });
+    }
+    F.done();
+    if (!hide) mus.forEach((m, i) => haloLabel(ctx, fmt(m, 2), F.X(i + 1), Math.max(F.T - 6, F.Y(m + 2 * sds[i]) - 8), ink2, "center"));
+    else haloLabel(ctx, "hidden while you play blind", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+    $("b-arms-cap").textContent = "Dot: each arm's mean μ; thick bar: μ ± σ; thin line: μ ± 2σ. Green: the best arm.";
+  }
+  function drawYou() {
+    const cv = $("b-you"), w = widthOf(cv), h = 220, ctx = setupCanvas(cv, w, h), n = me.pulls, X = n || 10;   // the lines end at the right edge, by their labels
+    if (blind()) {
+      const F = frame(ctx, w, h, { x: [0, X], y: [0, 1], yticks: [], xlabel: "your pull", ylabel: "regret", margin: { r: 84 } }); F.done();
+      haloLabel(ctx, "hidden while you play blind", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+      return;
+    }
+    const lines = RULES.filter((M) => on[M.id] && fresh(M.id)).map((M) => {
+      const res = results[M.id], m = Math.min(n, res.T), xs = [0], ys = [0];
+      for (let t = 0; t < m; t++) { xs.push(t + 1); ys.push(res.regret[t]); }
+      return { M, res, xs, ys };
+    });
+    let top = 0.5; me.hist.forEach((v) => (top = Math.max(top, v))); lines.forEach((l) => (top = Math.max(top, l.ys[l.ys.length - 1])));
+    const F = frame(ctx, w, h, { x: [0, X], y: [0, top * 1.1], xticks: niceTicks(0, X, 5).filter((v) => Number.isInteger(v)), xlabel: "your pull", ylabel: "regret", margin: { r: 84 } });
+    const ends = [];
+    lines.forEach(({ M, res, xs, ys }) => { polyline(ctx, F, xs, ys, css(M.color), 1.6); if (n) ends.push({ y: F.Y(ys[ys.length - 1]), text: shortName(M, res), color: css(M.color) }); });
+    const youC = css("--neutral");
+    polyline(ctx, F, me.hist.map((_, i) => i), me.hist, youC, 2.8);
+    ends.push({ y: F.Y(me.regret), text: "you", color: youC });
+    F.done();
+    endLabels(ctx, F, ends);
+    if (!n) haloLabel(ctx, "pull an arm to start", (F.L + F.R) / 2, (F.T + F.B) / 2, css("--ink-3"), "center");
+  }
+  function meText() {
+    const n = me.pulls, hide = blind(), d = fam === "bern" ? 0 : 2;
+    $("b-me-stats").innerHTML = `<span>pulls <b>${n}</b></span><span>total reward <b>${fmt(me.total, d)}</b></span>` +
+      `<span>your average reward <b>${n ? fmt(me.total / n, 3) : "—"}</b></span>` +
+      `<span>your regret <b>${hide ? "hidden" : fmt(me.regret, 2)}</b></span>` +
+      `<span>pulls of the best arm <b>${hide ? "hidden" : n ? Math.round(100 * me.bestPulls / n) + "%" : "—"}</b></span>`;
+    let html;
+    if (hide) html = "Playing blind: the arms' settings, the best arm, and your regret are hidden. Pull until you think you know the best arm, then uncheck “Play blind” to see how much reward your exploring cost against the rules'.";
+    else {
+      html = `Your regret is the expected reward you gave up against always pulling the best arm: each pull of arm a costs the gap μ* − μ<sub>a</sub> between the best arm's mean and its own, whatever it happened to pay. The rules' regret is the same sum, averaged over their runs.`;
+      if (me.last) html += `<div style="margin-top:4px">Last pull: arm ${me.last.i + 1} paid <b style="color:${me.last.r > 0 ? "var(--reward)" : "var(--ink-2)"}">${fam === "bern" ? me.last.r : fmt(me.last.r, 2)}</b>; its average is now ${fmt(me.s[me.last.i] / me.n[me.last.i], 3)} from ${me.n[me.last.i]} pull${me.n[me.last.i] === 1 ? "" : "s"}.</div>`;
+      const fr = RULES.filter((M) => on[M.id] && fresh(M.id));
+      if (n && fr.length) {
+        const m = Math.min(n, results[fr[0].id].T);
+        html += `<div style="margin-top:4px">After ${m.toLocaleString("en-US")} pull${m === 1 ? "" : "s"}, you: ${fmt(me.hist[m], 2)}; the rules on average: ` +
+          fr.map((M) => `${shortName(M, results[M.id])} ${fmt(results[M.id].regret[m - 1], 2)}`).join(", ") + (n > m ? ` (their runs end at ${m.toLocaleString("en-US")} pulls)` : "") + `.</div>`;
+      }
+    }
+    $("b-me-readout").innerHTML = html;
+  }
+  function legendAndHow() {
+    const P = params();
+    $("b-legend").innerHTML = RULES.filter((M) => on[M.id]).map((M) => `<span style="--c:var(${M.color})"><i></i>${M.name}` +
+      (M.id === "eps" ? ` (ε = ${P.eps.toFixed(2)})` : M.id === "ucb" ? ` (c = ${P.c.toFixed(2)})` : M.id === "grad" ? ` (η = ${P.alpha.toFixed(2)}${P.base ? "" : ", no baseline"})` : "") + `</span>`).join("");
+    $("b-how").innerHTML = `How they choose. <b>Greedy</b>: the arm with the highest average so far, after one pull of each. <b>ε-greedy</b>: the same, but a random arm with probability ε. ` +
+      `<b>UCB</b>: the highest average + c √(2 ln t / n<sub>a</sub>), after one pull of each; c = 1 is UCB1. ` +
+      `<b>Thompson sampling</b>: draw a mean for each arm from its posterior and pull the highest: Beta(1 + ones, 1 + zeros) for Bernoulli arms; for Gaussian arms, with a flat prior and σ known, N(average, σ<sub>a</sub>²/n<sub>a</sub>) after one pull of each. ` +
+      `<b>Gradient bandit</b>: π = softmax of the preferences H; after each pull, H ← H + η (r − r̄)(1[arm a] − π), r̄ the average reward so far (0 without the baseline); the last arm's preference stays 0, so with two arms π(arm 1) = σ(θ), as in the notes.`;
+  }
+  function table() {
+    const vis = visible();
+    if (!vis.length) { $("b-table").innerHTML = ""; return; }
+    const T = results[vis[0].id].T, L = Math.min(100, T);
+    $("b-table").innerHTML = `<thead><tr><th>Rule</th><th>Average reward</th><th>Best arm, last ${L} pulls</th><th>Runs stuck on a worse arm</th><th>Regret after ${T.toLocaleString("en-US")}</th></tr></thead><tbody>` +
+      vis.map((M) => { const r = results[M.id]; return `<tr${fresh(M.id) ? "" : ' style="opacity:0.45"'}><td><span class="sw" style="--c:var(${M.color})"></span>${M.name}</td><td>${fmt(r.avgRew, 3)}</td><td>${(100 * r.late).toFixed(0)}%</td><td>${(100 * r.stuck).toFixed(0)}%</td><td>${r.regret[r.T - 1].toFixed(1)}</td></tr>`; }).join("") + `</tbody>`;
+  }
+  function textResults() {
+    if (running) { $("b-readout").textContent = status; return; }
+    const F = (id) => (on[id] && fresh(id) ? results[id] : null);
+    const g = F("greedy"), e = F("eps"), u = F("ucb"), ts = F("ts"), gr = F("grad");
+    const any = RULES.filter((M) => F(M.id));
+    if (!any.length) { $("b-readout").textContent = RULES.some((M) => on[M.id]) ? "Waiting to run…" : "Choose at least one rule to run."; return; }
+    const P = any.map((M) => results[M.id])[0], T = P.T, R = P.R, parts = [];
+    const at = (r, n) => r.regret[Math.min(n, r.T) - 1];
+    if (g) parts.push(`Greedy choice ends stuck on a worse arm in ${(100 * g.stuck).toFixed(0)}% of runs; one unlucky early pull of the best arm is enough to lock it in, and its regret then grows by a constant amount every pull.`);
+    if (e) parts.push(`ε-greedy never locks in, but keeps paying for its random pulls, so its regret grows in a straight line too.`);
+    if (u || ts) parts.push(`${u && ts ? "UCB and Thompson sampling" : u ? "UCB" : "Thompson sampling"} explore${u && ts ? "" : "s"} less and less as the evidence comes in, so ${u && ts ? "their" : "its"} regret flattens, growing only like the logarithm of the number of pulls.`);
+    if (gr) parts.push(`The gradient bandit's random policy sharpens as it learns, so its regret grows ever more slowly${gr.P.base ? "" : "; without the baseline every reward pushes up the arm that earned it, and the steps are noisier"}.`);
+    if (e && u && T > 1000) parts.push(`On these arms, ε-greedy's regret is ${at(e, 1000).toFixed(1)} after 1,000 pulls and ${at(e, T).toFixed(1)} after ${T.toLocaleString("en-US")}; ${shortName(RULES[2], u)}'s is ${at(u, 1000).toFixed(1)} and ${at(u, T).toFixed(1)}.`);
+    const best = any.reduce((m, M) => (at(results[M.id], T) < at(results[m.id], T) ? M : m));
+    parts.push(`After ${T.toLocaleString("en-US")} pulls the lowest regret is ${best.name}'s, ${at(results[best.id], T).toFixed(1)}.`);
+    if (isNotes() && T === 5000) parts.push(`The notes, from one set of 1,000 runs (Appendix G): greedy 349, ε-greedy 79, gradient bandit 61, UCB1 40, Thompson sampling 8; after 1,000 pulls 70, 20, 43, 23, and 6. Choose 1,000 runs to compare. Greedy's figure varies most from one set of runs to the next: each run that locks in adds about 1,500, so with 1,000 runs its standard error is about 19.`);
+    parts.push(`Averages over ${R.toLocaleString("en-US")} runs; a run is “stuck” if fewer than half of its last ${Math.min(100, T)} pulls took the best arm.`);
+    $("b-readout").innerHTML = parts.join(" ");
+  }
+  function drawAll() { legendAndHow(); drawCharts(); drawArmsPlot(); drawYou(); meText(); table(); textResults(); }
+  onRedraw(drawAll);
+
+  // --- the rules' controls
+  $("b-rules").innerHTML = RULES.map((M) => `<label class="check"><input type="checkbox" data-id="${M.id}" checked><span class="sw" style="--c:var(${M.color})"></span>${M.name}</label>`).join("");
+  $("b-rules").addEventListener("change", (e) => { const id = e.target.dataset.id; if (!id) return; on[id] = e.target.checked; schedule(0); });
+  function syncLabels() {
+    $("b-eps-v").textContent = (+$("b-eps").value).toFixed(2); $("b-c-v").textContent = (+$("b-c").value).toFixed(2);
+    $("b-alpha-v").textContent = (+$("b-alpha").value).toFixed(2);
+  }
+  ["b-eps", "b-c", "b-alpha"].forEach((id) => $(id).addEventListener("input", () => { syncLabels(); schedule(); }));
+  ["b-base", "b-T", "b-R"].forEach((id) => $(id).addEventListener("change", () => schedule(0)));
+  $("b-log").addEventListener("change", drawAll);
+  $("b-run").addEventListener("click", () => { seedBase++; schedule(0); });
+
+  [fam, arms] = PRESETS.notes();
+  syncLabels(); renderEditor(); resetMe(); renderButtons(); syncArmControls();
+  drawAll(); run();
+})();
+
+/* ------------------------------------------------------------------ the corridor in closed form (sections 3 and 4) */
+const NEXT = [[0, 1], [2, 0], [1, 3]];                  // NEXT[s][a]: a = 0 left, 1 right; state 3 is the goal
+function Jc(p) { return -2 * (2 - p) / (p * (1 - p)); }
+function solve3(A, b) {                                // Gaussian elimination, 3 x 3
+  const M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < 3; c++) {
+    let piv = c; for (let r = c + 1; r < 3; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    [M[c], M[piv]] = [M[piv], M[c]];
+    for (let r = 0; r < 3; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k < 4; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[3] / r[i]);
+}
+function valuesC(p) { return solve3([[p, -p, 0], [-p, 1, -(1 - p)], [0, -(1 - p), 1]], [-1, -1, -1]); }
+function visitsC(p) {                                  // (I - P)^T eta = e1
+  const P = [[1 - p, p, 0], [p, 0, 1 - p], [0, 1 - p, 0]];
+  const A = [0, 1, 2].map((i) => [0, 1, 2].map((j) => (i === j ? 1 : 0) - P[j][i]));
+  return solve3(A, [1, 0, 0]);
+}
+const PSTAR = 2 - Math.SQRT2, JSTAR = Jc(PSTAR);
+
+/* ------------------------------------------------------------------ 2. Monte Carlo against TD on the corridor */
+(function prediction() {
+  const CAP = 1000;
+  let Vmc, Vtd, errMc, errTd, eps, last, avg = null;
+  const p = () => +$("m-p").value, eta = () => +$("m-eta").value;
+  function reset() { Vmc = [0, 0, 0, 0]; Vtd = [0, 0, 0, 0]; errMc = []; errTd = []; eps = 0; last = null; }
+  function rms(V, tv) { return Math.sqrt(((V[0] - tv[0]) ** 2 + (V[1] - tv[1]) ** 2 + (V[2] - tv[2]) ** 2) / 3); }
+  function episode(mc, td, pp, et, rnd, record) {
+    // one episode at policy pp; TD updates after each step, Monte Carlo (every visit) after the episode
+    let s = 0, T = 0; const states = [], tdLog = [];
+    while (s !== 3 && T < CAP) {
+      const a = rnd() < pp ? 1 : 0, s2 = NEXT[s][a];
+      const old = td[s], v2 = td[s2], delta = -1 + v2 - old;
+      td[s] += et * delta;
+      if (record && tdLog.length < 12) tdLog.push({ s, a, s2, old, v2, now: td[s], delta });
+      states.push(s); s = s2; T++;
+    }
+    const mcLog = [];
+    for (let t = 0; t < T; t++) {
+      const G = -(T - t), st = states[t], old = mc[st];
+      mc[st] += et * (G - mc[st]);
+      if (record && mcLog.length < 12) mcLog.push({ s: st, G, old, now: mc[st] });
+    }
+    return { T, states, tdLog, mcLog };
+  }
+  function step(n) {
+    const tv = valuesC(p());
+    for (let i = 0; i < n; i++) {
+      last = episode(Vmc, Vtd, p(), eta(), Math.random, i === n - 1);
+      eps++; errMc.push(rms(Vmc, tv)); errTd.push(rms(Vtd, tv));
+    }
+  }
+  function drawBars() {
+    const cv = $("m-bars"), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h);
+    const tv = valuesC(p());
+    const lo = Math.min(-20, Math.min(...tv, ...Vmc.slice(0, 3), ...Vtd.slice(0, 3)) * 1.15);
+    const F = frame(ctx, w, h, { x: [0.4, 3.6], y: [lo, 0], xticks: [1, 2, 3], xfmt: (v) => "state " + v, ylabel: "value" });
+    const bw = Math.min(34, (F.R - F.L) / 9);
+    for (let i = 0; i < 3; i++) {
+      const x = F.X(i + 1);
+      [[Vmc[i], "--mc", -1], [Vtd[i], "--td", 1]].forEach(([v, c, side]) => {
+        ctx.fillStyle = withAlpha(css(c), 0.85);
+        const y0 = F.Y(0), y1 = F.Y(v);
+        ctx.fillRect(x + (side < 0 ? -bw - 2 : 2), Math.min(y0, y1), bw, Math.abs(y1 - y0));
+      });
+      ctx.strokeStyle = css("--ink"); ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(x - bw - 8, F.Y(tv[i])); ctx.lineTo(x + bw + 8, F.Y(tv[i])); ctx.stroke();
+    }
+    F.done();
+    for (let i = 0; i < 3; i++) haloLabel(ctx, fmt(tv[i], 1), F.X(i + 1) + bw + 10, F.Y(tv[i]), css("--ink"), "left");
+  }
+  function drawErr() {
+    const cv = $("m-err"), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h);
+    const n = Math.max(avg ? avg.mc.length : 0, errMc.length, 20);
+    const top = Math.max(2, ...errMc.slice(0, 400), ...(avg ? avg.mc : []), ...(avg ? avg.td : [])) * 1.05;
+    const F = frame(ctx, w, h, { x: [0, n], y: [0, top], xlabel: "episode", ylabel: "error (rms)" });
+    if (avg) {
+      polyline(ctx, F, avg.mc.map((_, i) => i + 1), avg.mc, css("--mc"), 2.6);
+      polyline(ctx, F, avg.td.map((_, i) => i + 1), avg.td, css("--td"), 2.6);
+    }
+    polyline(ctx, F, errMc.map((_, i) => i + 1), errMc, css("--mc"), 1.2, null, 0.7);
+    polyline(ctx, F, errTd.map((_, i) => i + 1), errTd, css("--td"), 1.2, null, 0.7);
+    F.done();
+  }
+  function updateText() {
+    const tv = valuesC(p());
+    let html = `At p = ${p().toFixed(2)} the true values are (${tv.map((v) => fmt(v, 2)).join(", ")}). After ${eps} episode${eps === 1 ? "" : "s"}: Monte Carlo (${Vmc.slice(0, 3).map((v) => fmt(v, 2)).join(", ")}), error ${errMc.length ? errMc[errMc.length - 1].toFixed(2) : "—"}; TD (${Vtd.slice(0, 3).map((v) => fmt(v, 2)).join(", ")}), error ${errTd.length ? errTd[errTd.length - 1].toFixed(2) : "—"}.`;
+    html += `<div class="eq" style="margin-top:4px">TD, after each step:  V(s) += η (r + V(s′) − V(s));   Monte Carlo, after the episode:  V(sₜ) += η (Gₜ − V(sₜ))</div>`;
+    if (last) {
+      const td = last.tdLog[0], mc = last.mcLog[0];
+      html += `<div style="margin-top:4px">The last episode took ${last.T} steps (states ${last.states.slice(0, 16).map((s) => s + 1).join(" → ")}${last.T > 16 ? " → …" : ""} → goal). ` +
+        `Its first TD update: in state ${td.s + 1}, ${td.a ? "right" : "left"} to ${td.s2 === 3 ? "the goal" : "state " + (td.s2 + 1)}, δ = −1 + (${fmt(td.v2, 2)}) − (${fmt(td.old, 2)}) = ${fmt(td.delta, 2)}, so V moved from ${fmt(td.old, 2)} to ${fmt(td.now, 2)}. ` +
+        `Monte Carlo's first update waited for the end: the return from step 0 was ${fmt(mc.G, 0)}, so V(state 1) moved from ${fmt(mc.old, 2)} to ${fmt(mc.now, 2)}.</div>`;
+    }
+    if (avg) html += `<div style="margin-top:4px">Average of 100 runs at η = ${avg.eta}: after 10 episodes, Monte Carlo's error ${avg.mc[9].toFixed(2)} and TD's ${avg.td[9].toFixed(2)}; after 500, ${avg.mc[499].toFixed(2)} and ${avg.td[499].toFixed(2)}. Monte Carlo learns faster at first; at the same step size, TD ends closer, because its targets are less noisy.</div>`;
+    $("m-readout").innerHTML = html;
+  }
+  function render() { drawBars(); drawErr(); updateText(); }
+  onRedraw(render);
+  function sync() { $("m-p-v").textContent = p().toFixed(2); $("m-eta-v").textContent = eta().toFixed(2); }
+  ["m-p", "m-eta"].forEach((id) => $(id).addEventListener("input", () => { sync(); reset(); avg = null; render(); }));
+  $("m-one").addEventListener("click", () => { step(1); render(); });
+  $("m-ten").addEventListener("click", () => { step(10); render(); });
+  $("m-reset").addEventListener("click", () => { reset(); render(); });
+  $("m-avg").addEventListener("click", () => {
+    const pp = p(), et = eta(), tv = valuesC(pp), N = 500, R = 100, rnd = mulberry32(17);
+    const mc = new Float64Array(N), td = new Float64Array(N);
+    for (let r = 0; r < R; r++) {
+      const a = [0, 0, 0, 0], b = [0, 0, 0, 0];
+      for (let e = 0; e < N; e++) { episode(a, b, pp, et, rnd, false); mc[e] += rms(a, tv) / R; td[e] += rms(b, tv) / R; }
+    }
+    avg = { mc: Array.from(mc), td: Array.from(td), eta: et.toFixed(2) };
+    render();
+  });
+  sync(); reset(); step(10); render();
+})();
+
+/* ------------------------------------------------------------------ 4. policy gradient on the corridor */
+(function corridor() {
+  const CAP = 1000, EPISODES = 1000;
+  let theta, w, Vc, hist, last, playing = false, many = null;
+  const method = () => $("c-method").value, eta = () => Math.pow(2, +$("c-eta").value), p0 = () => +$("c-p0").value;
+  function reset() { theta = logit(p0()); w = 0; Vc = [0, 0, 0, 0]; hist = [sigma(theta)]; last = null; }
+  function episode(st, m, et, rnd) {
+    // one episode; updates st = {theta, w, V}; returns {T, visits, g}
+    let s = 0, T = 0; const traj = []; const visits = [0, 0, 0];
+    if (m === "ac") {
+      let gsum = 0;
+      while (s !== 3 && T < CAP) {
+        const p = sigma(st.theta), a = rnd() < p ? 1 : 0, s2 = NEXT[s][a];
+        const delta = -1 + st.V[s2] - st.V[s];
+        st.V[s] += 0.0625 * delta;
+        st.theta += et * delta * (a - p); gsum += delta * (a - p);
+        visits[s]++; s = s2; T++;
+      }
+      return { T, visits, g: gsum };
+    }
+    const p = sigma(st.theta);
+    while (s !== 3 && T < CAP) { const a = rnd() < p ? 1 : 0; traj.push(a); visits[s]++; s = NEXT[s][a]; T++; }
+    let g = 0;
+    for (let t = 0; t < T; t++) { const G = -(T - t); g += (G - (m === "rfb" ? st.w : 0)) * (traj[t] - p); }
+    st.theta += et * g;
+    if (m === "rfb") for (let t = 0; t < T; t++) st.w += 0.015625 * (-(T - t) - st.w);
+    return { T, visits, g };
+  }
+  function oneEpisode() {
+    const st = { theta, w, V: Vc };
+    last = episode(st, method(), eta(), Math.random);
+    theta = st.theta; w = st.w; Vc = st.V;
+    hist.push(sigma(theta));
+  }
+  function drawCorridor() {
+    const cv = $("c-corridor"), W = Math.min(widthOf(cv), 760), H = 150, ctx = setupCanvas(cv, W, H);
+    const p = sigma(theta), bw = Math.min(110, (W - 60) / 4.6), gap = (W - 4 * bw) / 4.2, y = 46, bh = 44;
+    const names = ["state 1", "state 2", "state 3", "goal"], ink = css("--ink"), ink3 = css("--ink-3"), pol = css("--policy");
+    const xs = [0, 1, 2, 3].map((i) => 6 + i * (bw + gap));
+    xs.forEach((x, i) => {
+      ctx.fillStyle = i === 3 ? mix(css("--bg"), css("--reward"), 0.3) : css("--panel");
+      ctx.strokeStyle = i === 3 ? css("--reward") : css("--rule-2"); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, bw, bh, 5) : ctx.rect(x, y, bw, bh); ctx.fill(); ctx.stroke();
+      label(ctx, names[i], x + bw / 2, y + 16, ink, "center", "middle", true);
+      if (i < 3) label(ctx, last ? `visited ${last.visits[i]}×` : (i === 1 ? "actions reversed" : ""), x + bw / 2, y + 32, ink3, "center");
+    });
+    // arrows: the effect of "right" (blue) and "left" (gray) in each state
+    const arc = (x0, x1, up, color, text) => {
+      const yy = up ? y - 2 : y + bh + 2, h = up ? -16 : 16, mx = (x0 + x1) / 2;
+      ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(x0, yy); ctx.quadraticCurveTo(mx, yy + 2 * h, x1, yy); ctx.stroke();
+      const ang = Math.atan2(yy - (yy + 2 * h), x1 - mx); ctx.beginPath(); ctx.moveTo(x1, yy);
+      ctx.lineTo(x1 - 8 * Math.cos(ang - 0.4), yy - 8 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 8 * Math.cos(ang + 0.4), yy - 8 * Math.sin(ang + 0.4)); ctx.fill(); ctx.restore();
+      if (text) label(ctx, text, mx, yy + h + (up ? -3 : 5), color, "center", up ? "bottom" : "top");
+    };
+    arc(xs[0] + bw * 0.7, xs[1] + bw * 0.3, true, pol, "right");
+    arc(xs[1] + bw * 0.3, xs[0] + bw * 0.7, false, pol, "right");
+    arc(xs[1] + bw * 0.7, xs[2] + bw * 0.3, true, css("--neutral"), "left");
+    arc(xs[2] + bw * 0.7, xs[3] + bw * 0.3, true, pol, "right");
+    arc(xs[2] + bw * 0.3, xs[1] + bw * 0.7, false, css("--neutral"), "left");
+    label(ctx, `p = P(right) = ${p.toFixed(3)}`, W - 6, H - 8, pol, "right", "alphabetic", true);
+    label(ctx, "left in state 1 stays put", 6, H - 8, ink3, "left", "alphabetic");
+  }
+  function drawJ() {
+    const cv = $("c-J"), w = widthOf(cv), h = 260, ctx = setupCanvas(cv, w, h);
+    const F = frame(ctx, w, h, { x: [0, 1], y: [-90, -5], xlabel: "p, the probability of “right”", ylabel: "J(p)" });
+    const ps = [], js = []; for (let i = 1; i < 400; i++) { const p = i / 400; ps.push(p); js.push(Math.max(Jc(p), -95)); }
+    polyline(ctx, F, ps, js, css("--ink-3"), 1.5);
+    const n = hist.length, pol = css("--policy");
+    hist.forEach((p, i) => {
+      if (i % Math.max(1, Math.floor(n / 300)) && i !== n - 1) return;
+      const pp = clamp(p, 0.003, 0.997);
+      ctx.beginPath(); ctx.arc(F.X(pp), F.Y(Math.max(Jc(pp), -92)), 2.6, 0, 7);
+      ctx.fillStyle = withAlpha(pol, 0.15 + 0.75 * i / Math.max(1, n - 1)); ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(F.X(PSTAR), F.Y(JSTAR), 4, 0, 7); ctx.strokeStyle = css("--reward"); ctx.lineWidth = 2; ctx.stroke();
+    F.done();
+    haloLabel(ctx, `best: p* = 0.586, J = ${fmt(JSTAR, 2)}`, F.X(PSTAR), F.Y(JSTAR) - 12, css("--reward"), "center");
+  }
+  function drawCurve() {
+    const cv = $("c-curve"), w = widthOf(cv), h = 260, ctx = setupCanvas(cv, w, h);
+    const n = Math.max(EPISODES, hist.length - 1);
+    const F = frame(ctx, w, h, { x: [0, n], y: [-90, -5], xlabel: "episode", ylabel: "J(p)" });
+    const colors = { rf: css("--ink"), rfb: css("--policy"), ac: css("--value") };
+    if (many) {
+      const c = colors[many.method];
+      band(ctx, F, many.xs, many.lo, many.hi, c, 0.16);
+      polyline(ctx, F, many.xs, many.med, c, 2.2);
+    }
+    const xs = hist.map((_, i) => i);
+    polyline(ctx, F, xs, hist.map((p) => Math.max(Jc(clamp(p, 1e-6, 1 - 1e-6)), -92)), colors[method()], 1.3, [3, 3]);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = css("--reward"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(F.L, F.Y(JSTAR)); ctx.lineTo(F.R, F.Y(JSTAR)); ctx.stroke(); ctx.setLineDash([]);
+    F.done();
+    haloLabel(ctx, "best", F.R - 4, F.Y(JSTAR) - 9, css("--reward"), "right");
+  }
+  const NAMES = { rf: "REINFORCE", rfb: "REINFORCE with a baseline", ac: "actor–critic" };
+  function updateText() {
+    const p = sigma(theta);
+    let html = `<b>${NAMES[method()]}</b>, η = 2<sup>${$("c-eta").value}</sup>, from p = ${p0().toFixed(2)}. After ${hist.length - 1} episodes: p = ${p.toFixed(3)}, J(p) = ${p > 1e-9 && p < 1 - 1e-9 ? fmt(Jc(p), 2) : "−∞ (the agent can never reach the goal)"}.`;
+    if (last) html += ` Last episode: ${last.T} steps${last.T >= CAP ? " (cut at 1,000)" : ""}, ${method() === "ac" ? "sum of the TD-weighted scores" : "gradient estimate"} ${fmtS(last.g, 1)}.`;
+    if (method() === "rfb") html += ` Baseline ${fmt(w, 2)}.`;
+    if (method() === "ac") html += ` Critic V = (${Vc.slice(0, 3).map((v) => fmt(v, 1)).join(", ")}); the true values at this p are (${p > 0.001 && p < 0.999 ? valuesC(p).map((v) => fmt(v, 1)).join(", ") : "—"}).`;
+    html += `<div class="eq" style="margin-top:4px">${method() === "ac" ? "after each step: δ = r + V(s′) − V(s);  V(s) += 2⁻⁴ δ;  θ += η δ ∇log π(a|s)" : method() === "rfb" ? "after each episode: θ += η Σₜ (Gₜ − b) ∇log π(aₜ),  b a running average of the returns" : "after each episode: θ += η Σₜ Gₜ ∇log π(aₜ),  with ∇log π = 1 − p for right, −p for left"}</div>`;
+    if (many) html += `<div style="margin-top:4px">100 runs of ${NAMES[many.method]} at η = 2<sup>${many.k}</sup> from p = ${many.p0.toFixed(2)}: ${many.stuck} ended stuck (p below 0.01 or above 0.99); ${many.near} ended within 0.5 of the best return; the median run was ${many.from === null ? "never within 0.5 of the best return" : `within 0.5 of the best return from episode ${many.from}`}.</div>`;
+    $("c-readout").innerHTML = html;
+  }
+  function render() { drawCorridor(); drawJ(); drawCurve(); updateText(); }
+  onRedraw(render);
+  function stop() { playing = false; $("c-play").textContent = "Run 1,000 episodes"; }
+  function sync() { $("c-eta-v").innerHTML = `2<sup>${$("c-eta").value}</sup> = ${eta() >= 0.01 ? eta().toFixed(3) : eta().toExponential(1)}`; $("c-p0-v").textContent = p0().toFixed(2); }
+  ["c-method", "c-eta", "c-p0"].forEach((id) => $(id).addEventListener(id === "c-method" ? "change" : "input", () => { stop(); sync(); reset(); many = null; render(); }));
+  $("c-one").addEventListener("click", () => { stop(); oneEpisode(); render(); });
+  $("c-reset").addEventListener("click", () => { stop(); reset(); render(); });
+  $("c-play").addEventListener("click", () => {
+    if (playing) { stop(); render(); return; }
+    playing = true; $("c-play").textContent = "Pause";
+    const target = hist.length - 1 + EPISODES;
+    const step = () => {
+      if (!playing) return;
+      for (let i = 0; i < 10 && hist.length - 1 < target; i++) oneEpisode();
+      render();
+      if (hist.length - 1 >= target) { stop(); render(); return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  $("c-many").addEventListener("click", () => {
+    stop();
+    const m = method(), k = +$("c-eta").value, et = eta(), start = p0(), R = 100;
+    const P = Array.from({ length: R }, () => new Float64Array(EPISODES + 1));
+    let run = 0; const rnd = mulberry32(2026);
+    $("c-many").disabled = true;
+    const chunk = () => {
+      const t0 = performance.now();
+      while (run < R && performance.now() - t0 < 40) {
+        const st = { theta: logit(start), w: 0, V: [0, 0, 0, 0] };
+        P[run][0] = start;
+        for (let e = 1; e <= EPISODES; e++) { episode(st, m, et, rnd); P[run][e] = sigma(st.theta); }
+        run++;
+      }
+      $("c-readout").textContent = `Running 100 runs: ${run} done…`;
+      if (run < R) { setTimeout(chunk, 0); return; }
+      const xs = [], med = [], lo = [], hi = [];
+      for (let e = 0; e <= EPISODES; e += 5) {
+        const js = P.map((r) => Math.max(Jc(clamp(r[e], 1e-9, 1 - 1e-9)), -92)).sort((a, b) => a - b);
+        xs.push(e); med.push(js[49]); lo.push(js[9]); hi.push(js[89]);
+      }
+      const Jend = P.map((r) => Jc(clamp(r[EPISODES], 1e-9, 1 - 1e-9)));
+      let from = null;
+      for (let i = 0; i < med.length; i++) { if (med.slice(i).every((v) => v > JSTAR - 0.5)) { from = xs[i]; break; } }
+      many = { method: m, k, p0: start, xs, med, lo, hi, from,
+        stuck: P.filter((r) => r[EPISODES] < 0.01 || r[EPISODES] > 0.99).length, near: Jend.filter((j) => j > JSTAR - 0.5).length };
+      $("c-many").disabled = false; render();
+    };
+    setTimeout(chunk, 0);
+  });
+  sync(); reset();
+  // open with a run in progress: 300 episodes of REINFORCE from p = 0.05
+  for (let i = 0; i < 300; i++) oneEpisode();
+  render();
+})();
+
+/* ------------------------------------------------------------------ 5. PPO */
+(function ppo() {
+  const eps = () => +$("p-eps").value, pold = () => +$("p-old").value;
+  function clipTerm(rho, A, e) { return Math.min(rho * A, clamp(rho, 1 - e, 1 + e) * A); }
+  function drawClip() {
+    const cv = $("p-clip"), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h), e = eps();
+    const half = Math.floor(w / 2);
+    [[1, 0], [-1, half]].forEach(([A, ox]) => {
+      ctx.save(); ctx.translate(ox, 0);
+      const F = frame(ctx, half, h, { x: [0, 2.2], y: A > 0 ? [-0.2, 2.2] : [-2.2, 0.2], xlabel: "ratio ρ", ylabel: A > 0 ? "Â = +1" : "Â = −1", margin: { l: 44, r: 10 } });
+      const zr = A > 0 ? [1 + e, 2.2] : [0, 1 - e];
+      ctx.fillStyle = withAlpha(css("--ppo"), 0.1); ctx.fillRect(F.X(zr[0]), F.T, F.X(zr[1]) - F.X(zr[0]), F.B - F.T);
+      const xs = []; for (let i = 0; i <= 220; i++) xs.push(i / 100);
+      polyline(ctx, F, xs, xs.map((r) => r * A), css("--bad"), 1.4, [2, 3]);
+      polyline(ctx, F, xs, xs.map((r) => clamp(r, 1 - e, 1 + e) * A), css("--neutral"), 1.4, [6, 4]);
+      polyline(ctx, F, xs, xs.map((r) => clipTerm(r, A, e)), css("--ppo"), 2.4);
+      ctx.beginPath(); ctx.arc(F.X(1), F.Y(A), 4, 0, 7); ctx.fillStyle = css("--ink"); ctx.fill();
+      F.done();
+      haloLabel(ctx, A > 0 ? `flat above 1 + ε = ${(1 + e).toFixed(2)}` : `flat below 1 − ε = ${(1 - e).toFixed(2)}`, A > 0 ? F.R - 4 : F.L + 6, A > 0 ? F.Y(0.1) : F.Y(-1.9), css("--ppo"), A > 0 ? "right" : "left");
+      ctx.restore();
+    });
+  }
+  function surrogate() {
+    const p = pold(), e = eps(), v = valuesC(p), vv = [...v, 0], eta = visitsC(p);
+    const Ar = [0, 1, 2].map((s) => -1 + vv[NEXT[s][1]] - v[s]), Al = [0, 1, 2].map((s) => -1 + vv[NEXT[s][0]] - v[s]);
+    const xs = [], tru = [], lin = [], clip = [];
+    for (let i = 4; i <= 196; i++) {
+      const q = i / 200; xs.push(q);
+      tru.push(Jc(q) - Jc(p));
+      let L = 0, C = 0;
+      for (let s = 0; s < 3; s++) {
+        L += eta[s] * (q * Ar[s] + (1 - q) * Al[s]);
+        C += eta[s] * (p * clipTerm(q / p, Ar[s], e) + (1 - p) * clipTerm((1 - q) / (1 - p), Al[s], e));
+      }
+      lin.push(L); clip.push(C);
+    }
+    let im = 0; clip.forEach((c, i) => { if (c > clip[im]) im = i; });
+    const kl = xs.map((q) => p * Math.log(p / q) + (1 - p) * Math.log((1 - p) / (1 - q)));
+    const inside = xs.filter((_, i) => kl[i] <= 0.01);
+    return { p, xs, tru, lin, clip, argmax: xs[im], at: tru[im], kl: [Math.min(...inside), Math.max(...inside)], eta, Ar };
+  }
+  function drawSur() {
+    const S = surrogate();
+    const cv = $("p-sur"), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h);
+    const best = JSTAR - Jc(S.p);
+    const top = Math.max(best, ...S.clip, 1) + 2, bot = Math.min(-12, -Math.max(...S.lin.map(Math.abs)) * 0.6);
+    const F = frame(ctx, w, h, { x: [0, 1], y: [bot, top], xlabel: "p′, the new policy's probability of “right”", ylabel: "change in J" });
+    ctx.fillStyle = withAlpha(css("--neutral"), 0.12); ctx.fillRect(F.X(S.kl[0]), F.T, F.X(S.kl[1]) - F.X(S.kl[0]), F.B - F.T);
+    ctx.strokeStyle = css("--rule-2"); ctx.beginPath(); ctx.moveTo(F.L, F.Y(0)); ctx.lineTo(F.R, F.Y(0)); ctx.stroke();
+    polyline(ctx, F, S.xs, S.tru.map((t) => Math.max(t, bot - 5)), css("--policy"), 2);
+    polyline(ctx, F, S.xs, S.lin, css("--bad"), 1.5, [2, 3]);
+    polyline(ctx, F, S.xs, S.clip, css("--ppo"), 2.4);
+    ctx.beginPath(); ctx.arc(F.X(S.argmax), F.Y(Math.max(...S.clip)), 4, 0, 7); ctx.fillStyle = css("--ppo"); ctx.fill();
+    ctx.beginPath(); ctx.arc(F.X(S.p), F.Y(0), 4, 0, 7); ctx.fillStyle = css("--ink"); ctx.fill();
+    F.done();
+    haloLabel(ctx, "KL ≤ 0.01", F.X((S.kl[0] + S.kl[1]) / 2), F.T + 8, css("--ink-3"), "center", "top");
+    $("p-sur-cap").textContent = `Built at p_old = ${S.p.toFixed(2)} from the old policy's visits and advantages (exact). The shaded band is where the KL divergence from the old policy is at most 0.01. Dot: PPO's objective at its peak.`;
+    const advTxt = S.Ar.map((a, i) => `state ${i + 1}: ${fmtS(a, 2)}`).join(", ");
+    $("p-readout").innerHTML = `At p_old = ${S.p.toFixed(2)}, the advantage of “right” is ${advTxt}, and the old policy visits the states ${S.eta.map((x) => x.toFixed(2)).join(", ")} times per episode. ` +
+      `The surrogate is a straight line in p′: it promises ever more the further the policy moves. PPO's objective (ε = ${eps().toFixed(2)}) peaks at p′ = ${S.argmax.toFixed(2)}, where the true change in J is ${fmtS(S.at, 2)}; ` +
+      `the best possible change from here is ${fmtS(JSTAR - Jc(S.p), 2)}, at p* = 0.586. Move p_old or ε to see when one clipped step overshoots.`;
+  }
+  function sync() { $("p-eps-v").textContent = eps().toFixed(2); $("p-old-v").textContent = pold().toFixed(2); }
+  function render() { sync(); drawClip(); drawSur(); }
+  ["p-eps", "p-old"].forEach((id) => $(id).addEventListener("input", render));
+  onRedraw(render);
+  render();
+})();
+/* ------------------------------------------------------------------ 6. behavior cloning and DAgger on the 7 x 7 grid */
+(function imitation() {
+  const N = 7, SLIP = 0.15, H = 60, GAMMA = 0.99, STEP = -0.02;
+  const PITS = new Set(["2,2", "3,4", "4,1", "5,4"]), GOAL = "6,6", ACT = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  const BUDGETS = [25, 50, 100, 200, 400, 800, 1600];
+  const k = (x, y) => x + "," + y;
+  const nxt = (x, y, a) => [clamp(x + ACT[a][0], 0, N - 1), clamp(y + ACT[a][1], 0, N - 1)];
+  const term = (key) => key === GOAL || PITS.has(key);
+  const rew = (key) => (key === GOAL ? 1 : PITS.has(key) ? -1 : STEP);
+  // the expert: value iteration on the slippery dynamics
+  const expert = {};
+  (function () {
+    let V = {};
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) V[k(x, y)] = 0;
+    const q = (x, y, a, V) => {
+      let v = 0;
+      for (let b = 0; b < 4; b++) {
+        const pr = (1 - SLIP) * (a === b ? 1 : 0) + SLIP / 4, [x2, y2] = nxt(x, y, b), key = k(x2, y2);
+        v += pr * (rew(key) + GAMMA * (term(key) ? 0 : V[key]));
+      }
+      return v;
+    };
+    for (let it = 0; it < 2000; it++) {
+      const nv = {}; let d = 0;
+      for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
+        const key = k(x, y);
+        if (term(key)) { nv[key] = 0; continue; }
+        nv[key] = Math.max(...[0, 1, 2, 3].map((a) => q(x, y, a, V)));
+        d = Math.max(d, Math.abs(nv[key] - V[key]));
+      }
+      V = nv; if (d < 1e-10) break;
+    }
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
+      const key = k(x, y); if (term(key)) continue;
+      const qs = [0, 1, 2, 3].map((a) => q(x, y, a, V));
+      expert[key] = qs.indexOf(Math.max(...qs));
+    }
+  })();
+  function rollout(policy, rnd, slips, record) {
+    let x = 0, y = 0; const seen = [];
+    for (let t = 0; t < H; t++) {
+      if (record) seen.push(k(x, y));
+      let a = policy(k(x, y), rnd);
+      if (slips && rnd() < SLIP) a = Math.floor(rnd() * 4);
+      [x, y] = nxt(x, y, a);
+      const key = k(x, y);
+      if (key === GOAL) return { ok: true, seen };
+      if (PITS.has(key)) return { ok: false, seen };
+    }
+    return { ok: false, seen };
+  }
+  function tablePolicy(labels) {
+    const counts = {};
+    for (const [s, a] of labels) (counts[s] = counts[s] || [0, 0, 0, 0])[a]++;
+    const pol = (s, rnd) => (counts[s] ? counts[s].indexOf(Math.max(...counts[s])) : Math.floor(rnd() * 4));
+    return { pol, counts };
+  }
+  function collect(method, demoSlips, B, rnd) {
+    let labels = [];
+    const demoTarget = method === "bc" ? B : Math.floor(B / 2);
+    while (labels.length < demoTarget) labels.push(...rollout((s) => expert[s], rnd, demoSlips, true).seen.map((s) => [s, expert[s]]));
+    labels = labels.slice(0, demoTarget);
+    while (labels.length < B) {
+      const { pol } = tablePolicy(labels);
+      labels.push(...rollout(pol, rnd, true, true).seen.map((s) => [s, expert[s]]));
+    }
+    return labels.slice(0, B);
+  }
+  const success = (pol, rnd, n) => { let c = 0; for (let i = 0; i < n; i++) if (rollout(pol, rnd, true, false).ok) c++; return c / n; };
+  const expertRate = success((s) => expert[s], mulberry32(5), 4000);
+  let current = null, curve = null, seed = 1;
+  const method = () => $("i-method").value, demoSlips = () => $("i-demo").value === "slip", budget = () => BUDGETS[+$("i-budget").value];
+  function train() {
+    const rnd = mulberry32(1000 + seed++);
+    const labels = collect(method(), demoSlips(), budget(), rnd);
+    const tp = tablePolicy(labels);
+    current = { ...tp, labels, rate: success(tp.pol, mulberry32(77), 2000), method: method(), slips: demoSlips(), B: budget() };
+  }
+  function compare() {
+    const out = {};
+    for (const [name, m, sl] of [["bc_clean", "bc", false], ["bc_slip", "bc", true], ["dagger", "dagger", true]]) {
+      out[name] = BUDGETS.map((B, j) => {
+        let tot = 0;
+        for (let r = 0; r < 6; r++) {
+          const rnd = mulberry32(31 * j + 7 * r + (m === "bc" ? 1 : 2) + (sl ? 100 : 0));
+          tot += success(tablePolicy(collect(m, sl, B, rnd)).pol, rnd, 500);
+        }
+        return tot / 6;
+      });
+    }
+    curve = out;
+  }
+  function drawGrid() {
+    const cv = $("i-grid"), avail = Math.min(widthOf(cv), 420), c = clamp(Math.floor((avail - 2) / N), 30, 58);
+    const ctx = setupCanvas(cv, N * c + 2, N * c + 2);
+    const counts = current ? current.counts : {};
+    let maxc = 1; for (const s in counts) maxc = Math.max(maxc, counts[s].reduce((a, b) => a + b, 0));
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
+      const key = k(x, y), X = 1 + x * c, Y = 1 + (N - 1 - y) * c;
+      let fill = css("--bg");
+      if (PITS.has(key)) fill = mix(css("--bg"), css("--bad"), 0.45);
+      else if (key === GOAL) fill = mix(css("--bg"), css("--reward"), 0.45);
+      else if (counts[key]) fill = mix(css("--bg"), css("--policy"), 0.12 + 0.5 * Math.log(1 + counts[key].reduce((a, b) => a + b, 0)) / Math.log(1 + maxc));
+      ctx.fillStyle = fill; ctx.fillRect(X, Y, c, c);
+      ctx.strokeStyle = css("--rule-2"); ctx.lineWidth = 1; ctx.strokeRect(X + 0.5, Y + 0.5, c - 1, c - 1);
+      const cx = X + c / 2, cy = Y + c / 2;
+      if (key === GOAL || PITS.has(key)) { label(ctx, key === GOAL ? "+1" : "−1", cx, cy, css("--ink"), "center", "middle", true); continue; }
+      if (counts[key]) {
+        const a = counts[key].indexOf(Math.max(...counts[key])), L = c * 0.36;
+        const [dx, dy] = ACT[a], ex = cx + dx * L / 2, ey = cy - dy * L / 2;
+        ctx.strokeStyle = css("--policy"); ctx.fillStyle = css("--policy"); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx - dx * L / 2, cy + dy * L / 2); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex + dx * 2, ey - dy * 2); ctx.lineTo(ex - dx * 6 - dy * 4, ey + dy * 6 - dx * 4); ctx.lineTo(ex - dx * 6 + dy * 4, ey + dy * 6 + dx * 4); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 7); ctx.fillStyle = css("--neutral"); ctx.fill();
+      }
+      if (x === 0 && y === 0) label(ctx, "S", X + 4, Y + c - 8, css("--ink-2"), "left", "middle", true);
+    }
+  }
+  function drawChart() {
+    const cv = $("i-chart"), w = widthOf(cv), h = 250, ctx = setupCanvas(cv, w, h);
+    const xs = BUDGETS.map((b) => Math.log2(b));
+    const F = frame(ctx, w, h, { x: [Math.log2(20), Math.log2(2000)], y: [0.5, 1.0], xticks: xs, xfmt: (v) => Math.round(2 ** v).toLocaleString("en-US"), yticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1], yfmt: (v) => Math.round(v * 100) + "%", xlabel: "expert-labeled states (logarithmic)", ylabel: "reach the goal" });
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = css("--neutral"); ctx.beginPath(); ctx.moveTo(F.L, F.Y(expertRate)); ctx.lineTo(F.R, F.Y(expertRate)); ctx.stroke(); ctx.setLineDash([]);
+    if (curve) {
+      polyline(ctx, F, xs, curve.bc_clean, css("--policy"), 1.6, [5, 4]);
+      polyline(ctx, F, xs, curve.bc_slip, css("--policy"), 2.2);
+      polyline(ctx, F, xs, curve.dagger, css("--value"), 2.2);
+      [["bc_slip", "--policy"], ["dagger", "--value"]].forEach(([n, col]) => curve[n].forEach((v, i) => { ctx.beginPath(); ctx.arc(F.X(xs[i]), F.Y(v), 3, 0, 7); ctx.fillStyle = css(col); ctx.fill(); }));
+    }
+    if (current) { ctx.beginPath(); ctx.arc(F.X(Math.log2(current.B)), F.Y(current.rate), 6, 0, 7); ctx.strokeStyle = css("--ink"); ctx.lineWidth = 2; ctx.stroke(); }
+    F.done();
+    haloLabel(ctx, "expert", F.L + 6, F.Y(expertRate) - 8, css("--neutral"));
+  }
+  function updateText() {
+    let html = `The expert reaches the goal in ${(100 * expertRate).toFixed(1)}% of episodes.`;
+    if (current) {
+      const n = Object.keys(current.counts).length;
+      html += ` <b>${current.method === "bc" ? "Behavior cloning" : "DAgger"}</b> with ${current.B.toLocaleString("en-US")} labeled states, demonstrations recorded ${current.slips ? "with" : "without"} slips: labels in ${n} of the 44 open cells; it reaches the goal in <b>${(100 * current.rate).toFixed(1)}%</b> of 2,000 episodes (black ring on the chart).`;
+      if (current.method === "bc" && !current.slips) html += ` An expert that never slips shows only its path, so more demonstrations add no new states: the learner's own slips take it where nobody showed it what to do.`;
+      if (current.method === "bc" && current.slips) html += ` Recorded with slips, the expert's demonstrations visit the states its slips lead to, the same ones the learner's slips lead to.`;
+      if (current.method === "dagger") html += ` DAgger runs the learner and labels the states it actually reaches.`;
+    }
+    if (curve) html += `<div style="margin-top:4px">With ${BUDGETS[6].toLocaleString("en-US")} labels: cloning from demonstrations without slips ${(100 * curve.bc_clean[6]).toFixed(0)}%, with slips ${(100 * curve.bc_slip[6]).toFixed(0)}%, DAgger ${(100 * curve.dagger[6]).toFixed(0)}%. What matters is that the labels cover the states the learner reaches; DAgger gets them by asking, and slippery demonstrations happen to contain them.</div>`;
+    $("i-readout").innerHTML = html;
+  }
+  function render() { $("i-budget-v").textContent = budget().toLocaleString("en-US"); drawGrid(); drawChart(); updateText(); }
+  onRedraw(render);
+  ["i-method", "i-demo"].forEach((id) => $(id).addEventListener("change", () => { train(); render(); }));
+  $("i-budget").addEventListener("input", () => { train(); render(); });
+  $("i-train").addEventListener("click", () => { train(); render(); });
+  $("i-compare").addEventListener("click", () => { $("i-readout").textContent = "Running…"; setTimeout(() => { compare(); render(); }, 20); });
+  train(); render();
+  setTimeout(() => { compare(); render(); }, 400);
+})();
+</script>
+</body>
+</html>
