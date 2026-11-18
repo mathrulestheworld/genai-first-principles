@@ -75,7 +75,7 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </li>
 
 <li id="current"><b>Week 7: Post-Training: Preferences, Rewards, and Reasoning</b>
-  <p>A chat model fine-tuned on example conversations imitates the answers it was shown, and nothing in its training tells it which of its own answers are good. How can we train it on a score of its own answers instead? We begin by looking back over the course, from the first language models to the chat model of Week 5, to see where post-training fits in the training of a model. We then make the chat model the agent of Week 6: post-training maximizes a reward while staying close to the model it starts from, the best policy for this objective has a simple closed form, and policy gradients and PPO climb toward it. We then learn from people’s preferences, with a reward model and reinforcement learning (RLHF), and without a reward model, with direct preference optimization (DPO). We end with rewards that a program can check, the method GRPO, and the reasoning models trained with them, such as DeepSeek-R1, and ask what this training adds to a model and what it cannot.</p>
+  <p>A chat model fine-tuned on example conversations imitates the answers it was shown, and nothing in its training tells it which of its own answers are good. How can we train it on a score of its own answers instead? We begin by looking back over the course, from the first language models to the chat model of Week 5, to see where post-training fits in the training of a model. We then make the chat model the agent of Week 6: post-training maximizes a reward while staying close to the model it starts from, the best policy for this objective has a simple closed form, and policy gradients and PPO climb toward it. We then learn from people’s preferences, with a reward model and reinforcement learning (RLHF), and without a reward model, with direct preference optimization (DPO). We end with rewards that a program can check, the method GRPO, and the reasoning models trained with them, such as DeepSeek-R1, and ask what this training adds to a model and what it cannot. (<a href="materials/week-07/lecture-07-notes.pdf" target="_blank" rel="noopener">notes</a>)</p>
   <p class="hands-on"><b>Hands-on:</b> direct preference optimization of our chat model on prepared preferences; as an extension, reinforcement learning on arithmetic problems whose answers can be checked.</p>
 </li>
 
@@ -101,6 +101,6 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 </ul>
 
 <hr>
-<p class="note">Updated 17 November 2026.</p>
+<p class="note">Updated 18 November 2026.</p>
 <script>function currentTheme(){var t=document.documentElement.getAttribute("data-theme");return t?t:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}function themeLabel(){var b=document.getElementById("theme-toggle");if(b)b.textContent=currentTheme()==="dark"?"Light mode":"Dark mode";}function toggleTheme(){var t=currentTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("theme",t);}catch(e){}themeLabel();}themeLabel();</script>
 </body></html>
