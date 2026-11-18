@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fine-tuning moves the model; RL reweights it</title>
+<style>
+/* Lecture 7, §3: a companion to Figure 15 of the notes, in the style of Lecture 6's explorer. Self-contained:
+   no libraries, figures drawn on canvas from theme tokens. Colors keep the notes' meanings: RL blue,
+   fine-tuning orange, the answers that solve the task green, the base model gray. */
+:root {
+  --bg: #ffffff; --ink: #14181d; --ink-2: #434b55; --ink-3: #69717c;
+  --rule: #e6e9ed; --rule-2: #cfd5dc; --track: #e3e7eb; --hover: #f3f5f7; --panel: #f6f8fa; --focus: #1f6fd1;
+  --rl: #2f5fb3; --sft: #e0661b; --solve: #2e9e5b; --base: #5f6b7a; --solve-fill: rgba(46,158,91,0.10);
+  --demo-fill: rgba(224,102,27,0.10);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1116; --ink: #e8ecf1; --ink-2: #b4bdc8; --ink-3: #8992a0;
+    --rule: #1e252d; --rule-2: #313b46; --track: #2a323c; --hover: #151b22; --panel: #121820; --focus: #6aa8ff;
+    --rl: #5b93f2; --sft: #f8862f; --solve: #4cc282; --base: #9aa4b0; --solve-fill: rgba(76,194,130,0.12);
+    --demo-fill: rgba(248,134,47,0.12); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1116; --ink: #e8ecf1; --ink-2: #b4bdc8; --ink-3: #8992a0;
+  --rule: #1e252d; --rule-2: #313b46; --track: #2a323c; --hover: #151b22; --panel: #121820; --focus: #6aa8ff;
+  --rl: #5b93f2; --sft: #f8862f; --solve: #4cc282; --base: #9aa4b0; --solve-fill: rgba(76,194,130,0.12);
+  --demo-fill: rgba(248,134,47,0.12); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px;
+  line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.page { max-width: 980px; margin: 0 auto; padding: 34px 16px 64px; }
+.top { display: flex; align-items: flex-start; gap: 16px; }
+.top > div { flex: 1; }
+h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -0.015em; }
+.lede { margin: 0 0 6px; font-size: 17px; color: var(--ink-2); max-width: 72ch; }
+.credit { margin: 0; color: var(--ink-3); font-size: 13px; max-width: 90ch; }
+.theme { border: 1px solid var(--rule-2); background: transparent; color: var(--ink-2); border-radius: 6px;
+  padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.theme:hover { background: var(--hover); }
+.setup { margin: 18px 0 0; padding: 12px 14px; background: var(--panel); border-radius: 8px; color: var(--ink-2);
+  font-size: 14px; max-width: 100%; }
+.setup p { margin: 0 0 6px; }
+.setup p:last-child { margin: 0; }
+.k-rl { color: var(--rl); font-weight: 600; }
+.k-sft { color: var(--sft); font-weight: 600; }
+.k-solve { color: var(--solve); font-weight: 600; }
+.k-base { color: var(--base); font-weight: 600; }
+.bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 26px; padding: 14px 0 12px;
+  border-top: 1px solid var(--rule); margin-top: 18px; }
+.ctl { flex: 1 1 280px; min-width: 0; }
+.ctl-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; font-size: 13px; }
+.ctl-top label, .ctl-top span.lab { font-weight: 600; color: var(--ink-2); }
+.val { font-variant-numeric: tabular-nums; margin-left: auto; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--rl); }
+.btn { border: 1px solid var(--rule-2); background: transparent; color: var(--ink); border-radius: 6px;
+  padding: 5px 12px; font: inherit; font-size: 14px; cursor: pointer; min-width: 74px; }
+.btn:hover { background: var(--hover); }
+.seg { display: inline-flex; border: 1px solid var(--rule-2); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--ink-2); padding: 5px 10px; font: inherit;
+  font-size: 13px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--track); color: var(--ink); font-weight: 600; }
+.check { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.fig { position: relative; width: 100%; }
+.fig canvas { display: block; width: 100%; }
+.figcap { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin: 6px 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 6px; }
+.card { background: var(--panel); border-radius: 8px; padding: 10px 14px; border-left: 4px solid var(--ink-3); }
+.card.rl { border-left-color: var(--rl); }
+.card.sft { border-left-color: var(--sft); }
+.card .name { font-size: 13px; font-weight: 600; }
+.card.rl .name { color: var(--rl); }
+.card.sft .name { color: var(--sft); }
+.card .big { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 2px 0; }
+.card .big small { font-size: 14px; font-weight: 400; color: var(--ink-3); }
+.card .sub { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ratio { font-size: 14px; color: var(--ink-2); margin: 2px 0 0; }
+h2 { font-size: 19px; margin: 30px 0 4px; letter-spacing: -0.01em; }
+ol.notice { padding-left: 1.3em; color: var(--ink-2); max-width: 78ch; }
+ol.notice li { margin: 0 0 8px; }
+.mono { font-variant-numeric: tabular-nums; }
+</style>
+<script>
+  // the course site's theme choice, if the reader made one there
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<main class="page">
+  <div class="top">
+    <div>
+      <h1>Fine-tuning moves the model; RL reweights it</h1>
+      <p class="lede">Two ways to make a model solve a task more often: fine-tune it on demonstrations, or train it
+        with reinforcement learning on a reward of 1 for a solving answer. Choose how often the trained model
+        should solve the task, and compare how far each method has moved the model to get there.</p>
+      <p class="credit">A companion to Lecture 7, §3: the best policy (13), the odds (15), and Figure 15 of the
+        <a href="lecture-07-notes.pdf">notes</a>. The comparison follows Shenfeld et al. (2025),
+        <a href="https://arxiv.org/abs/2509.04259">RL's Razor: Why Online Reinforcement Learning Forgets Less</a>.
+        An illustration: every number is computed exactly from the setup below.</p>
+    </div>
+    <button class="theme" id="theme" type="button" aria-label="Switch between light and dark">Dark</button>
+  </div>
+
+  <div class="setup">
+    <p><b>The setup.</b> The model's answers to one prompt are points on a line. The
+      <span class="k-base">base model</span> draws them from a standard normal distribution. Answers to the right
+      of 1.2 <span class="k-solve">solve the task</span>; the base model solves it 11.5% of the time.</p>
+    <p><span class="k-rl">RL</span>: the best policy of the objective (12) for a reward of 1 for a solving answer,
+      π* ∝ π<sub>base</sub> e<sup>r/β</sup>, computed exactly. A smaller β gives a higher success rate.</p>
+    <p><span class="k-sft">Fine-tuning</span>: a Gaussian model, starting from the base model, fitted by gradient
+      descent on the log-loss of demonstrations drawn from N(3.3, 0.55²), all of which solve the task. The slider
+      picks the step at which it first solves the task as often as chosen.</p>
+  </div>
+
+  <div class="bar" role="group" aria-label="Controls">
+    <div class="ctl">
+      <div class="ctl-top"><label for="s">Share of answers that solve the task</label><span class="val" id="sval">90%</span></div>
+      <input type="range" id="s" min="0" max="1000" step="1" value="892" aria-describedby="sval">
+    </div>
+    <button class="btn" id="play" type="button" aria-label="Play">▶ Play</button>
+    <div>
+      <div class="ctl-top"><span class="lab" id="divlab">Measure the drift as</span></div>
+      <div class="seg" role="group" aria-labelledby="divlab">
+        <button type="button" id="ord-p" aria-pressed="true">KL(model ‖ base)</button>
+        <button type="button" id="ord-b" aria-pressed="false">KL(base ‖ model)</button>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="demo" checked> show the demonstrations</label>
+  </div>
+
+  <div class="legend" aria-hidden="true">
+    <span><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="var(--base)" stroke-width="2" stroke-dasharray="3 3"/></svg>base model</span>
+    <span><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="var(--rl)" stroke-width="2.5"/></svg>RL: the base model, reweighted</span>
+    <span><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="var(--sft)" stroke-width="2.5" stroke-dasharray="8 4"/></svg>fine-tuning</span>
+    <span id="demoleg"><svg width="14" height="10"><rect width="14" height="10" fill="var(--demo-fill)" stroke="var(--sft)" stroke-width="0.5"/></svg>demonstrations</span>
+    <span><svg width="14" height="10"><rect width="14" height="10" fill="var(--solve-fill)"/></svg>answers that solve the task</span>
+  </div>
+  <div class="fig"><canvas id="dens" height="300" role="img" aria-label="Probability densities of the base model, the RL model, and the fine-tuned model, at the chosen success rate."></canvas></div>
+
+  <div class="cards" aria-live="polite">
+    <div class="card rl">
+      <div class="name">RL</div>
+      <div class="big"><span id="rlD">0</span> <small>nats of drift</small></div>
+      <div class="sub" id="rlSub"></div>
+    </div>
+    <div class="card sft">
+      <div class="name">Fine-tuning</div>
+      <div class="big"><span id="sfD">0</span> <small>nats of drift</small></div>
+      <div class="sub" id="sfSub"></div>
+    </div>
+  </div>
+  <p class="ratio" id="ratio"></p>
+
+  <h2>Drift against success, along each run</h2>
+  <div class="fig"><canvas id="path" height="280" role="img" aria-label="Drift from the base model against the share of answers that solve the task, for RL and for fine-tuning. RL reaches every success rate with less drift."></canvas></div>
+  <p class="figcap">Each curve is one run from the base model (left end, 11.5%) to 99.5% success; the dots mark the
+    chosen success rate. The RL curve is also the least drift that any model needs to solve the task that often.</p>
+
+  <h2>What to look for</h2>
+  <ol class="notice">
+    <li><b>RL keeps the shape of the base model.</b> Inside the green region, the blue curve is the base model's
+      curve scaled up; outside, scaled down. Every solving answer is multiplied by the same factor, e<sup>1/β</sup>
+      relative to the others, so the odds of solving are multiplied by e<sup>1/β</sup>, as in equation (15).
+      No answer appears that the base model did not already write.</li>
+    <li><b>Fine-tuning moves the whole distribution toward the demonstrations</b>, including answers that the base
+      model almost never wrote. On its way it first spreads out, then narrows onto the demonstrations.</li>
+    <li><b>At the same success rate, fine-tuning has moved further</b>: here at least twice as far, measured as in
+      the penalty of the objective. Shenfeld et al. found the same on real models, and found that this drift predicts
+      how much a model forgets of what it could do before.</li>
+    <li><b>No model can solve the task as often with less drift than RL's.</b> A model that solves the task with
+      probability <i>s</i> is at least as far from the base model as the coin that comes up heads with probability
+      <i>s</i> is from the coin with 11.5%, in either order of the divergence. The best policy reaches exactly
+      that bound, because it changes the base model only by one factor inside the region and one outside.</li>
+    <li><b>Switch the order of the divergence.</b> The penalty in the objective (12) puts the model first. With the
+      base model first, both drifts grow quickly near 100%, because the base model's answers outside the region
+      become very unlikely under either trained model. Fine-tuning still moves further, by less in the middle of the
+      range, and RL's curve is still the lower bound.</li>
+  </ol>
+</main>
+
+<script>
+"use strict";
+// ---- the setup --------------------------------------------------------------------------------------------
+const erf = x => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592)
+                  * t * Math.exp(-x * x)); };
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+const pdf = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+const C = 1.2, Q = 1 - Phi(C);            // answers above C solve the task; the base model's success rate
+const DM = 3.3, DS = 0.55;                // the demonstrations, N(DM, DS^2)
+const SMIN = Q, SMAX = 0.995;             // the slider's range of success rates
+const XMIN = -4, XMAX = 6;
+
+// RL: the best policy pi* = pi_0 e^(lam R) / Z, lam = 1/beta, at success s (the odds of solving times e^lam)
+function rlAt(s) {
+  const lam = Math.log((s / (1 - s)) / (Q / (1 - Q)));
+  const Z = (1 - Q) + Q * Math.exp(lam);
+  return { s, lam, kP: bkl(s, Q), kB: bkl(Q, s), f: x => pdf(x, 0, 1) * (x > C ? Math.exp(lam) : 1) / Z };
+}
+function bkl(a, b) {                       // KL between two coins, heads with probabilities a and b
+  const t = (u, v) => (u <= 0 ? 0 : u * Math.log(u / v));
+  return t(a, b) + t(1 - a, 1 - b);
+}
+// fine-tuning: gradient descent on the log-loss of the demonstrations, over (mean, log std), from N(0, 1)
+const SFT = [];
+{ let m = 0, ls = 0; const lr = 0.004;
+  for (let i = 0; i <= 4000; i++) {
+    const sd = Math.exp(ls);
+    SFT.push({ i, m, sd, s: 1 - Phi((C - m) / sd),
+               kP: (sd * sd + m * m - 1) / 2 - Math.log(sd),               // KL(N(m, sd^2) || N(0, 1))
+               kB: Math.log(sd) + (1 + m * m) / (2 * sd * sd) - 0.5 });    // KL(N(0, 1) || N(m, sd^2))
+    const v = sd * sd, gm = -(DM - m) / v, gs = 1 - (DS * DS + (DM - m) ** 2) / v;
+    m -= lr * gm; ls -= lr * gs;
+  } }
+function sftAt(s) {                        // the first step at which the run solves the task with rate >= s
+  let k = 0; while (k < SFT.length - 1 && SFT[k].s < s) k++;
+  const p = SFT[k]; return Object.assign({}, p, { f: x => pdf(x, p.m, p.sd) });
+}
+
+// ---- state and controls -----------------------------------------------------------------------------------
+const el = id => document.getElementById(id);
+let order = "P", showDemo = true;
+const sliderToS = v => SMIN + (SMAX - SMIN) * v / 1000;
+const pct = s => (s >= 0.995 ? (100 * s).toFixed(1) : s >= 0.1 ? (100 * s).toFixed(0) : (100 * s).toFixed(1)) + "%";
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// ---- drawing ----------------------------------------------------------------------------------------------
+function setup(canvas) {                   // size the canvas to its box, at the screen's pixel density
+  if (!canvas._h) canvas._h = +canvas.getAttribute("height");
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas._h;
+  canvas.style.height = h + "px"; canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+function axes(ctx, box, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt) {
+  const { l, t, r, b } = box, X = x => l + (x - xr[0]) / (xr[1] - xr[0]) * (r - l),
+        Y = y => b - (y - yr[0]) / (yr[1] - yr[0]) * (b - t);
+  ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1; ctx.fillStyle = css("--ink-3");
+  ctx.font = "12px " + css("--font-ui");
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (const x of xt) { ctx.beginPath(); ctx.moveTo(X(x), t); ctx.lineTo(X(x), b); ctx.stroke(); ctx.fillText(xfmt(x), X(x), b + 5); }
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (const y of yt) { ctx.beginPath(); ctx.moveTo(l, Y(y)); ctx.lineTo(r, Y(y)); ctx.stroke(); ctx.fillText(yfmt(y), l - 6, Y(y)); }
+  ctx.strokeStyle = css("--rule-2"); ctx.beginPath(); ctx.moveTo(l, t); ctx.lineTo(l, b); ctx.lineTo(r, b); ctx.stroke();
+  ctx.fillStyle = css("--ink-2"); ctx.font = "13px " + css("--font-ui");
+  ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillText(xlab, (l + r) / 2, b + 38);
+  ctx.save(); ctx.translate(l - 42, (t + b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "middle";
+  ctx.fillText(ylab, 0, 0); ctx.restore();
+  return { X, Y };
+}
+function curve(ctx, pts, color, width, dash) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath();
+  pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.setLineDash([]);
+}
+// the grid of answers, with the edge of the region at C taken from both sides, so that RL's jump is vertical
+const XS = []; for (let x = XMIN; x <= XMAX + 1e-9; x += 0.01) { if (Math.abs(x - C) < 0.005) continue; XS.push(+x.toFixed(3)); }
+XS.push(C - 1e-6, C + 1e-6); XS.sort((a, b) => a - b);
+
+function drawDensities(rl, sf) {
+  const c = el("dens"), { ctx, w, h } = setup(c); ctx.clearRect(0, 0, w, h);
+  const box = { l: 58, t: 14, r: w - 14, b: h - 46 };
+  const { X, Y } = axes(ctx, box, [XMIN, XMAX], [0, 1.8], [-4, -2, 0, 2, 4, 6], [0, 0.5, 1, 1.5],
+                        "an answer, as a point on a line", "probability density", x => x, y => y.toFixed(1));
+  ctx.fillStyle = css("--solve-fill"); ctx.fillRect(X(C), box.t, box.r - X(C), box.b - box.t);
+  ctx.fillStyle = css("--solve"); ctx.font = "600 12px " + css("--font-ui"); ctx.textAlign = "right"; ctx.textBaseline = "top";
+  ctx.fillText("solves the task", box.r - 6, box.t + 4);
+  if (showDemo) {
+    ctx.fillStyle = css("--demo-fill"); ctx.beginPath(); ctx.moveTo(X(XMIN), Y(0));
+    XS.forEach(x => ctx.lineTo(X(x), Y(pdf(x, DM, DS)))); ctx.lineTo(X(XMAX), Y(0)); ctx.closePath(); ctx.fill();
+  }
+  curve(ctx, XS.map(x => [X(x), Y(pdf(x, 0, 1))]), css("--base"), 2, [3, 3]);
+  curve(ctx, XS.map(x => [X(x), Y(Math.min(1.8, sf.f(x)))]), css("--sft"), 2.5, [8, 4]);
+  curve(ctx, XS.map(x => [X(x), Y(Math.min(1.8, rl.f(x)))]), css("--rl"), 2.5);
+}
+
+const PATHS = (() => {                     // both runs, from the base model to SMAX
+  const rl = [], sf = [];
+  for (let k = 0; k <= 300; k++) { const s = SMIN + (SMAX - SMIN) * k / 300; const r = rlAt(s); rl.push({ s, kP: r.kP, kB: r.kB }); }
+  for (const p of SFT) { sf.push(p); if (p.s >= SMAX) break; }
+  return { rl, sf };
+})();
+function drawPaths(rl, sf) {
+  const c = el("path"), { ctx, w, h } = setup(c); ctx.clearRect(0, 0, w, h);
+  const key = order === "P" ? "kP" : "kB", ymax = order === "P" ? 6 : 10;
+  const box = { l: 58, t: 14, r: w - 14, b: h - 46 };
+  const yt = order === "P" ? [0, 1, 2, 3, 4, 5, 6] : [0, 2, 4, 6, 8, 10];
+  const { X, Y } = axes(ctx, box, [0, 1], [0, ymax], [0, 0.2, 0.4, 0.6, 0.8, 1], yt,
+                        "share of answers that solve the task", order === "P" ? "KL(model ‖ base), nats" : "KL(base ‖ model), nats",
+                        x => Math.round(100 * x) + "%", y => y);
+  ctx.strokeStyle = css("--ink-3"); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(rl.s), box.t); ctx.lineTo(X(rl.s), box.b); ctx.stroke(); ctx.setLineDash([]);
+  curve(ctx, PATHS.sf.map(p => [X(p.s), Y(Math.min(ymax, p[key]))]), css("--sft"), 2.5, [8, 4]);
+  curve(ctx, PATHS.rl.map(p => [X(p.s), Y(p[key])]), css("--rl"), 2.5);
+  const dot = (x, y, color) => { ctx.fillStyle = color; ctx.strokeStyle = css("--bg"); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  dot(X(sf.s), Y(Math.min(ymax, sf[key])), css("--sft")); dot(X(rl.s), Y(rl[key]), css("--rl"));
+  ctx.font = "600 12px " + css("--font-ui"); ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  const sfEnd = PATHS.sf[PATHS.sf.length - 1], rlEnd = PATHS.rl[PATHS.rl.length - 1];
+  ctx.fillStyle = css("--sft"); ctx.textAlign = "right"; ctx.fillText("fine-tuning", X(sfEnd.s) - 8, Y(Math.min(ymax, sfEnd[key])) - 12);
+  ctx.fillStyle = css("--rl"); ctx.fillText("RL", X(rlEnd.s) - 8, Y(rlEnd[key]) + 14);
+}
+
+function update() {
+  const s = sliderToS(+el("s").value), rl = rlAt(s), sf = sftAt(s);
+  const key = order === "P" ? "kP" : "kB";
+  el("sval").textContent = pct(s);
+  el("rlD").textContent = rl[key].toFixed(2);
+  el("sfD").textContent = sf[key].toFixed(2);
+  el("rlSub").innerHTML = s <= Q + 1e-9 ? "the base model itself (β = ∞)" :
+    `β = ${(1 / rl.lam).toFixed(2)}; the odds of solving ×${Math.exp(rl.lam).toFixed(1)}`;
+  el("sfSub").textContent = s <= Q + 1e-9 ? "the base model itself (step 0)" :
+    `step ${sf.i.toLocaleString("en-US")}; mean ${sf.m.toFixed(2)}, std ${sf.sd.toFixed(2)}; solves ${pct(sf.s)}`;
+  el("ratio").textContent = rl[key] > 1e-3 ? `At this success rate, fine-tuning has moved ${(sf[key] / rl[key]).toFixed(1)} times as far from the base model as RL.` : "";
+  drawDensities(rl, sf); drawPaths(rl, sf);
+}
+
+el("s").addEventListener("input", update);
+el("demo").addEventListener("change", e => { showDemo = e.target.checked; el("demoleg").style.opacity = showDemo ? 1 : 0.35; update(); });
+for (const [id, o] of [["ord-p", "P"], ["ord-b", "B"]]) el(id).addEventListener("click", () => {
+  order = o; el("ord-p").setAttribute("aria-pressed", o === "P"); el("ord-b").setAttribute("aria-pressed", o === "B"); update(); });
+let timer = null;
+el("play").addEventListener("click", () => {
+  const b = el("play"), r = el("s");
+  if (timer) { clearInterval(timer); timer = null; b.textContent = "▶ Play"; b.setAttribute("aria-label", "Play"); return; }
+  if (+r.value >= 1000) r.value = 0;
+  b.textContent = "❚❚ Pause"; b.setAttribute("aria-label", "Pause");
+  timer = setInterval(() => { r.value = Math.min(1000, +r.value + 6); update();
+    if (+r.value >= 1000) { clearInterval(timer); timer = null; b.textContent = "▶ Play"; b.setAttribute("aria-label", "Play"); } }, 40);
+});
+function themeLabel() { const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() !== "#ffffff";
+  el("theme").textContent = dark ? "Light" : "Dark"; }
+el("theme").addEventListener("click", () => {
+  const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() !== "#ffffff";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("theme", dark ? "light" : "dark"); } catch (e) {}
+  themeLabel(); update();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { themeLabel(); update(); });
+window.addEventListener("resize", update);
+themeLabel(); update();
+</script>
+</body>
+</html>
