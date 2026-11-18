@@ -28,14 +28,14 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <div class="wip-banner">Work in progress: this page and the course materials are still being written and will change as the course runs.</div>
 <dl>
   <dd><b>Instructor</b>: <a href="https://mathrulestheworld.github.io/">Madhusudhan Reddy Pittu</a></dd>
-  <dd><b>Format</b>: Eight weekly lectures of approximately two hours, with an optional ninth session. Wednesdays, 3–5 pm.</dd>
+  <dd><b>Format</b>: Seven weekly lectures of approximately two hours. Wednesdays, 3–5 pm.</dd>
   <dd><b>Course plan</b>: each week pairs a lecture with a hands-on part. The weeks are listed below; each week's description, notes, slides, <a href="https://github.com/mathrulestheworld/tinylm">code</a>, and references are posted here as the week runs.</dd>
   <dd><b>Supplementary material</b>: <a href="notes/index.html">Background Notes on Machine Learning and AI</a></dd>
 </dl>
 
 <hr>
 <h3>About</h3>
-<p>This course introduces generative AI through the study of large language models, combining mathematical foundations with hands-on implementation. Over the eight weeks we build a small language model from scratch, small enough to train on a laptop in minutes to an hour: we implement its components, train and fine-tune it, probe its behavior, and evaluate its outputs. The aim is a complete working understanding of the model: how it works, how to build it, and how to investigate what it has learned.</p>
+<p>This course introduces generative AI through the study of large language models, combining mathematical foundations with hands-on implementation. Over the seven weeks we build a small language model from scratch, small enough to train on a laptop in minutes to an hour: we implement its components, train and fine-tune it, probe its behavior, and evaluate its outputs. The aim is a complete working understanding of the model: how it works, how to build it, and how to investigate what it has learned.</p>
 <p>We trace the path from statistical models of language to Transformers, pretraining, post-training, and inference. Throughout, we ask the same questions: what can these models learn and compute, from what data, with what resources, and with what guarantees? The implementation gives a concrete setting in which to explore these questions, connecting theory with experiment.</p>
 <p><b>How these materials are made.</b> The course materials are put together with the help of AI. I do the high-level planning, and I read and refine all of the material thoroughly myself. For this reason the materials are constantly updated and refined. This is the first version of the course, so please bear with me :)</p>
 
@@ -77,12 +77,6 @@ ul.weeks > li > p.hands-on{margin-top:.25em}
 <li id="current"><b>Week 7: Post-Training: Preferences, Rewards, and Reasoning</b>
   <p>A chat model fine-tuned on example conversations imitates the answers it was shown, and nothing in its training tells it which of its own answers are good. How can we train it on a score of its own answers instead? We begin by looking back over the course, from the first language models to the chat model of Week 5, to see where post-training fits in the training of a model. We then make the chat model the agent of Week 6: post-training maximizes a reward while staying close to the model it starts from, the best policy for this objective has a simple closed form, and policy gradients and PPO climb toward it. We then learn from people’s preferences, with a reward model and reinforcement learning (RLHF), and without a reward model, with direct preference optimization (DPO). We end with rewards that a program can check, the method GRPO, and the reasoning models trained with them, such as DeepSeek-R1, and ask what this training adds to a model and what it cannot. (<a href="materials/week-07/lecture-07-notes.pdf" target="_blank" rel="noopener">notes</a>, <a href="materials/week-07/sft-vs-rl.html">interactive figure: fine-tuning vs. RL</a>)</p>
   <p class="hands-on"><b>Hands-on:</b> direct preference optimization of our chat model on prepared preferences; as an extension, reinforcement learning on arithmetic problems whose answers can be checked.</p>
-</li>
-
-<li><b>Week 8: Inference: Decoding, Test-Time Compute, Serving, and Evaluation</b>
-</li>
-
-<li><b>Week 9 (optional): Alignment and Language Model Agents</b>
 </li>
 
 </ul>
